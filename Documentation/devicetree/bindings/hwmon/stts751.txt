@@ -1,0 +1,19 @@
+* STTS751 thermometer.
+
+Required node properties:
+- compatible: "stts751"
+- reg: I2C bus address of the device
+
+Optional properties:
+- has-therm: specifies that the "therm" pin is wired
+- has-event: specifies that the "event" pin is wired
+- smbus-timeout-disable: when set, the smbus timeout function will be disabled
+
+Example stts751 node:
+
+temp-sensor {
+	compatible = "stts751";
+	reg = <0x48>;
+	has-therm;
+	has-event;
+}
