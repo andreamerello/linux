@@ -1,3 +1,4 @@
+
 /*
  * RTL8XXXU mac80211 USB driver
  *
@@ -2089,6 +2090,7 @@ int rtl8xxxu_load_firmware(struct rtl8xxxu_priv *priv, char *fw_name)
 	case 0x92e0:
 	case 0x92c0:
 	case 0x88c0:
+	case 0x88e0:
 	case 0x5300:
 	case 0x2300:
 		break;
@@ -6098,6 +6100,9 @@ static struct usb_device_id dev_table[] = {
 /* Tested by Andrea Merello */
 {USB_DEVICE_AND_INTERFACE_INFO(0x050d, 0x1004, 0xff, 0xff, 0xff),
 	.driver_info = (unsigned long)&rtl8192cu_fops},
+/* Hacking in progress --  Andrea Merello */
+{USB_DEVICE_AND_INTERFACE_INFO(0x0df6, 0x0076, 0xff, 0xff, 0xff),
+	.driver_info = (unsigned long)&rtl8188eu_fops},
 /* Currently untested 8188 series devices */
 {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_REALTEK, 0x8191, 0xff, 0xff, 0xff),
 	.driver_info = (unsigned long)&rtl8192cu_fops},

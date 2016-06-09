@@ -1424,5 +1424,6 @@ bool rtl8xxxu_gen2_simularity_compare(struct rtl8xxxu_priv *priv,
 
 extern struct rtl8xxxu_fileops rtl8192cu_fops;
 extern struct rtl8xxxu_fileops rtl8192eu_fops;
+extern struct rtl8xxxu_fileops rtl8188eu_fops;
 extern struct rtl8xxxu_fileops rtl8723au_fops;
 extern struct rtl8xxxu_fileops rtl8723bu_fops;
