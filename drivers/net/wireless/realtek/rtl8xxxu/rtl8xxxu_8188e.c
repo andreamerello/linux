@@ -241,7 +241,7 @@ static struct rtl8xxxu_reg32val rtl8xxx_agc_8188eu_std_table[] = {
 
 // ok except for #ifdef UNKNOW (depends by board ?)
 static struct rtl8xxxu_rfregval rtl8188eu_radioa_init_table[] = {
-	{0x0, 0x00030000}, {0x8, 0x00084000},
+	{0x00, 0x00030000}, {0x8, 0x00084000},
 	{0x18, 0x00000407}, {0x19, 0x00000012},
 	{0x1e, 0x00080009}, {0x1f, 0x00000880},
 	{0x2f, 0x0001a060}, {0x3f, 0x00000000},
@@ -289,12 +289,14 @@ static struct rtl8xxxu_rfregval rtl8188eu_radioa_init_table[] = {
 	{0x3b, 0x00030090}, {0x3b, 0x00020080},
 	{0x3b, 0x00010080}, {0x3b, 0x0000f780},
 	{0xef, 0x000000a0}, {0x0, 0x00010159},
-	{0x18, 0x0000f407}, {0xffe, 0x00000000},
-	{0xffe, 0x00000000}, {0x1f, 0x00080003},
-	{0xffe, 0x00000000}, {0xffe, 0x00000000},
+	{0x18, 0x0000f407},
+	//{0xffe, 0x00000000},
+	//{0xffe, 0x00000000},
+	{0x1f, 0x00080003},
+//	{0xffe, 0x00000000}, {0xffe, 0x00000000},
 	{0x1e, 0x00000001}, {0x1f, 0x00080000},
 	{0x0, 0x00033e60},
-	{0xfff, 0xffffffff},
+	{0xff, 0xffffffff},
 };
 
 static void
@@ -305,6 +307,7 @@ rtl8188e_set_tx_power(struct rtl8xxxu_priv *priv, int channel, bool ht40)
 	int group, tx_idx;
 
 	tx_idx = 0;
+	/* OK verified that is gen2_channel_to_gropu */
 	group = rtl8xxxu_gen2_channel_to_group(channel);
 
 	cck = priv->cck_tx_power_index_A[group];
@@ -378,7 +381,7 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 	struct rtl8188eu_efuse *efuse = &priv->efuse_wifi.efuse8188eu;
 	int i;
 
-	if (efuse->rtl_id != cpu_to_le16(0x8129))
+	if (efuse->rtl_id != cpu_to_le16(0x8188))
 		return -EINVAL;
 
 	ether_addr_copy(priv->mac_addr, efuse->mac_addr);
@@ -472,9 +475,9 @@ static void rtl8188eu_init_phy_bb(struct rtl8xxxu_priv *priv)
 	rtl8xxxu_write8(priv, REG_RF_CTRL, val8);
 	rtl8xxxu_init_phy_regs(priv, rtl8188eu_phy_init_table);
 
-	if (priv->hi_pa)
-		rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_highpa_table);
-	else
+//	if (priv->hi_pa)
+//		rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_highpa_table);
+//	else
 		rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_std_table);
 }
 
@@ -1306,22 +1309,22 @@ struct rtl8xxxu_fileops rtl8188eu_fops = {
 	.init_phy_bb = rtl8188eu_init_phy_bb,
 	.init_phy_rf = rtl8188eu_init_phy_rf,
 	.phy_iq_calibrate = rtl8188eu_phy_iq_calibrate,
-	.config_channel = rtl8xxxu_gen1_config_channel,
-	.parse_rx_desc = rtl8xxxu_parse_rxdesc24,
+	.config_channel = rtl8xxxu_gen2_config_channel,
+	.parse_rx_desc = rtl8xxxu_parse_rxdesc24, //ok
 	.enable_rf = rtl8188e_enable_rf,
-	.disable_rf = rtl8xxxu_gen1_disable_rf,
-	.usb_quirks = rtl8xxxu_gen1_usb_quirks,
+	.disable_rf = rtl8xxxu_gen2_disable_rf,
+	.usb_quirks = rtl8xxxu_gen2_usb_quirks,   // seems ok
 	.set_tx_power = rtl8188e_set_tx_power,
-	.update_rate_mask = rtl8xxxu_gen1_update_rate_mask,
-	.report_connect = rtl8xxxu_gen1_report_connect,
+	.update_rate_mask = rtl8xxxu_gen2_update_rate_mask, // bho ?
+	.report_connect = rtl8xxxu_gen2_report_connect, // bho ?
 	.writeN_block_size = 128,
-	.tx_desc_size = sizeof(struct rtl8xxxu_txdesc40),
-	.rx_desc_size = sizeof(struct rtl8xxxu_rxdesc24),
+	.tx_desc_size = sizeof(struct rtl8xxxu_txdesc32),  // ok
+	.rx_desc_size = sizeof(struct rtl8xxxu_rxdesc24), //  ok
 	.has_s0s1 = 0,
-	.adda_1t_init = 0x0fc01616,
-	.adda_1t_path_on = 0x0fc01616,
-	.adda_2t_path_on_a = 0x0fc01616,
-	.adda_2t_path_on_b = 0x0fc01616,
+	.adda_1t_init = 0x0fc01616, // todo
+	.adda_1t_path_on = 0x0b1b25a0, //ok
+	.adda_2t_path_on_a = 0x04db25a4, //ok
+	.adda_2t_path_on_b = 0x0b1b25a4, //ok
 	.trxff_boundary = 0x3cff,
 	.mactable = rtl8188e_mac_init_table,
 	.total_page_num = TX_TOTAL_PAGE_NUM_8188E,
