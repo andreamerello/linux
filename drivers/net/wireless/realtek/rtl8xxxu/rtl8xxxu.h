@@ -43,6 +43,7 @@
 
 #define TX_TOTAL_PAGE_NUM		0xf8
 #define TX_TOTAL_PAGE_NUM_8192E		0xf3
+#define TX_TOTAL_PAGE_NUM_8188E		0xa8
 /* (HPQ + LPQ + NPQ + PUBQ) = TX_TOTAL_PAGE_NUM */
 #define TX_PAGE_NUM_PUBQ		0xe7
 #define TX_PAGE_NUM_HI_PQ		0x0c
@@ -53,6 +54,11 @@
 #define TX_PAGE_NUM_HI_PQ_8192E		0x08
 #define TX_PAGE_NUM_LO_PQ_8192E		0x0c
 #define TX_PAGE_NUM_NORM_PQ_8192E	0x00
+
+#define TX_PAGE_NUM_PUBQ_8188E		0x47
+#define TX_PAGE_NUM_HI_PQ_8188E		0x29
+#define TX_PAGE_NUM_LO_PQ_8188E		0x1c
+#define TX_PAGE_NUM_NORM_PQ_8188E	0x1c
 
 #define RTL_FW_PAGE_SIZE		4096
 #define RTL8XXXU_FIRMWARE_POLL_MAX	1000
@@ -823,6 +829,11 @@ struct rtl8192eu_efuse_tx_power {
 	struct rtl8723bu_pwr_idx pwr_diff[3];
 	u8 dummy5g[24]; /* max channel group (14) + power diff offset (10) */
 };
+
+struct rtl8188eu_efuse
+{
+	///////////1!! look at staging/rtl8188eu/include/rtl8188e_spec.h
+}
 
 struct rtl8192eu_efuse {
 	__le16 rtl_id;
