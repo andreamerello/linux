@@ -1003,6 +1003,9 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 	}
 }
 
+/* use of gen2_simularity_compare OK (consistent wrt staging)  */
+
+#warning TODO: check wrt cal code in staging/rtl8188ue/hal/phy.c
 static void rtl8188eu_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
 {
 	struct device *dev = &priv->udev->dev;
