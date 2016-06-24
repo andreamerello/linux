@@ -1212,8 +1212,40 @@ static int rtl8188eu_power_on(struct rtl8xxxu_priv *priv)
 	u32 val32;
 	int ret;
 
-	ret = 0;
+#if 0
+STAGING:
 
+
+
+ 	{0x0006, PWR_CUT_ALL_MSK, PWR_CMD_POLLING, BIT(1), BIT(1)}, \
+	/* wait till 0x04[17] = 1    power ready*/	\
+
+		REG_SYS_FUNC
+	{0x0002, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(0) | BIT(1), 0}, \
+
+                SDIO_REG_HCPWM2
+	/* 0x02[1:0] = 0	reset BB*/				\
+	{0x0026, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(7), BIT(7)}, \
+
+
+	/*0x24[23] = 2b'01 schmit trigger */				\
+	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(7), 0}, \
+	/* 0x04[15] = 0 disable HWPDN (control by DRV)*/		\
+	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(4) | BIT(3), 0}, \
+	/*0x04[12:11] = 2b'00 disable WL suspend*/			\
+	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(0), BIT(0)}, \
+	/*0x04[8] = 1 polling until return 0*/				\
+	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_POLLING, BIT(0), 0}, \
+
+
+	/*wait till 0x04[8] = 0*/					\
+	{0x0023, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(4), 0}, \
+	/*LDO normal mode*/
+#endif
+
+
+	ret = 0;
+#if 0
 	val32 = rtl8xxxu_read32(priv, REG_SYS_CFG);
 	if (val32 & SYS_CFG_SPS_LDO_SEL) {
 		rtl8xxxu_write8(priv, REG_LDO_SW_CTRL, 0xc3);
@@ -1227,7 +1259,7 @@ static int rtl8188eu_power_on(struct rtl8xxxu_priv *priv)
 		rtl8xxxu_write32(priv, REG_LDOV12D_CTRL, val32);
 		rtl8xxxu_write8(priv, REG_LDO_SW_CTRL, 0x83);
 	}
-
+#endif
 	/*
 	 * Adjust AFE before enabling PLL
 	 */
