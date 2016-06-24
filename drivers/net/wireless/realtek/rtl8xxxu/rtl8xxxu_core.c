@@ -861,7 +861,7 @@ int rtl8xxxu_write_rfreg(struct rtl8xxxu_priv *priv,
 
 	data &= FPGA0_LSSI_PARM_DATA_MASK;
 	dataaddr = (reg << FPGA0_LSSI_PARM_ADDR_SHIFT) | data;
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E) {
 		val32 = rtl8xxxu_read32(priv, REG_FPGA0_POWER_SAVE);
 		val32 &= ~0x20000;
@@ -876,7 +876,7 @@ int rtl8xxxu_write_rfreg(struct rtl8xxxu_priv *priv,
 		retval = 0;
 
 	udelay(1);
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E) {
 		val32 = rtl8xxxu_read32(priv, REG_FPGA0_POWER_SAVE);
 		val32 |= 0x20000;
@@ -1682,7 +1682,7 @@ static int rtl8xxxu_identify_chip(struct rtl8xxxu_priv *priv)
 		priv->usb_interrupts = 1;
 		priv->has_wifi = 1;
 	}
-
+#warning TODO check for 8188eu
 	switch (priv->rtl_chip) {
 	case RTL8188E:
 	case RTL8192E:
@@ -2159,7 +2159,7 @@ rtl8xxxu_init_mac(struct rtl8xxxu_priv *priv)
 			return -EAGAIN;
 		}
 	}
-
+#warning 8188EU ?
 	if (priv->rtl_chip != RTL8723B && priv->rtl_chip != RTL8192E)
 		rtl8xxxu_write8(priv, REG_MAX_AGGR_NUM, 0x0a);
 
@@ -2324,7 +2324,7 @@ static int rtl8xxxu_init_phy_bb(struct rtl8xxxu_priv *priv)
 
 		rtl8xxxu_write32(priv, REG_MAC_PHY_CTRL, val32);
 	}
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E)
 		rtl8xxxu_write32(priv, REG_AFE_XTAL_CTRL, 0x000f81fb);
 
@@ -3965,7 +3965,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	ret = priv->fops->init_phy_rf(priv);
 	if (ret)
 		goto exit;
-
+#warning 8188eu ?
 	/* RFSW Control - clear bit 14 ?? */
 	if (priv->rtl_chip != RTL8723B && priv->rtl_chip != RTL8192E)
 		rtl8xxxu_write32(priv, REG_FPGA0_TX_INFO, 0x00000003);
@@ -3978,7 +3978,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 			  (FPGA0_RF_PAPE << FPGA0_RF_BD_CTRL_SHIFT));
 	}
 	rtl8xxxu_write32(priv, REG_FPGA0_XAB_RF_SW_CTRL, val32);
-
+#warning 8188eu ?
 	/* 0x860[6:5]= 00 - why? - this sets antenna B */
 	if (priv->rtl_chip != RTL8192E)
 		rtl8xxxu_write32(priv, REG_FPGA0_XA_RF_INT_OE, 0x66f60210);
@@ -3987,6 +3987,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 		/*
 		 * Set TX buffer boundary
 		 */
+#warning 8188eu ?
 		if (priv->rtl_chip == RTL8192E)
 			val8 = TX_TOTAL_PAGE_NUM_8192E + 1;
 		else
@@ -4008,6 +4009,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	 */
 	val8 = (priv->fops->pbp_rx << PBP_PAGE_SIZE_RX_SHIFT) |
 		(priv->fops->pbp_tx << PBP_PAGE_SIZE_TX_SHIFT);
+#warning 8188eu ?
 	if (priv->rtl_chip != RTL8192E)
 		rtl8xxxu_write8(priv, REG_PBP, val8);
 
@@ -4028,6 +4030,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 		 * Presumably this is for 8188EU as well
 		 * Enable TX report and TX report timer
 		 */
+#warning 8188eu ?
 		if (priv->rtl_chip == RTL8723B) {
 			val8 = rtl8xxxu_read8(priv, REG_TX_REPORT_CTRL);
 			val8 |= TX_REPORT_CTRL_TIMER_ENABLE;
@@ -4048,7 +4051,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	 * Unit in 8 bytes, not obvious what it is used for
 	 */
 	rtl8xxxu_write8(priv, REG_RX_DRVINFO_SZ, 4);
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E) {
 		rtl8xxxu_write32(priv, REG_HIMR0, 0x00);
 		rtl8xxxu_write32(priv, REG_HIMR1, 0x00);
@@ -4133,6 +4136,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	/*
 	 * Initialize burst parameters
 	 */
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8723B) {
 		/*
 		 * For USB high speed set 512B packets
@@ -4182,7 +4186,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	 * Start out with default power levels for channel 6, 20MHz
 	 */
 	priv->fops->set_tx_power(priv, 1, false);
-
+#warning 8188eu ?
 	/* Let the 8051 take control of antenna setting */
 	if (priv->rtl_chip != RTL8192E) {
 		val8 = rtl8xxxu_read8(priv, REG_LEDCFG2);
@@ -4199,7 +4203,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 
 	if (priv->fops->init_statistics)
 		priv->fops->init_statistics(priv);
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E) {
 		/*
 		 * 0x4c6[3] 1: RTS BW = Data BW
@@ -4243,6 +4247,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 			rtl8xxxu_write32(priv, REG_FPGA0_RF_MODE, val32);
 		}
 	} else if (priv->rtl_chip == RTL8192E) {
+#warning 8188eu ?
 		rtl8xxxu_write8(priv, REG_USB_HRPWM, 0x00);
 	}
 
@@ -4250,7 +4255,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	val32 |= FWHW_TXQ_CTRL_XMIT_MGMT_ACK;
 	/* ack for xmit mgmt frames. */
 	rtl8xxxu_write32(priv, REG_FWHW_TXQ_CTRL, val32);
-
+#warning 8188eu ?
 	if (priv->rtl_chip == RTL8192E) {
 		/*
 		 * Fix LDPC rx hang issue.
