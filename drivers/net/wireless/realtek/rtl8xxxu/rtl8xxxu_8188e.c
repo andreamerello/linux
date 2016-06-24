@@ -1221,10 +1221,10 @@ static int rtl8188eu_power_on(struct rtl8xxxu_priv *priv)
 		/*
 		 * Raise 1.2V voltage
 		 */
-		val32 = rtl8xxxu_read32(priv, REG_8188E_LDOV12_CTRL);
+		val32 = rtl8xxxu_read32(priv, REG_LDOV12D_CTRL); // reg def is ok
 		val32 &= 0xff0fffff;
 		val32 |= 0x00500000;
-		rtl8xxxu_write32(priv, REG_8188E_LDOV12_CTRL, val32);
+		rtl8xxxu_write32(priv, REG_LDOV12D_CTRL, val32);
 		rtl8xxxu_write8(priv, REG_LDO_SW_CTRL, 0x83);
 	}
 
