@@ -830,11 +830,6 @@ struct rtl8192eu_efuse_tx_power {
 	u8 dummy5g[24]; /* max channel group (14) + power diff offset (10) */
 };
 
-struct rtl8188eu_efuse
-{
-	///////////1!! look at staging/rtl8188eu/include/rtl8188e_spec.h
-}
-
 struct rtl8192eu_efuse {
 	__le16 rtl_id;
 	u8 res0[0x0e];

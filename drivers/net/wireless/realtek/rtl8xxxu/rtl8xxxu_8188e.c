@@ -378,7 +378,7 @@ rtl8188e_set_tx_power(struct rtl8xxxu_priv *priv, int channel, bool ht40)
 
 static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 {
-	struct rtl8188eu_efuse *efuse = &priv->efuse_wifi.efuse8188eu;
+	struct rtl8192eu_efuse *efuse = &priv->efuse_wifi.efuse8192eu;
 	int i;
 
 	if (efuse->rtl_id != cpu_to_le16(0x8188))
@@ -424,7 +424,7 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 	}
 
 	priv->has_xtalk = 1;
-	priv->xtalk = priv->efuse_wifi.efuse8188eu.xtal_k & 0x3f;
+	priv->xtalk = priv->efuse_wifi.efuse8192eu.xtal_k & 0x3f;
 
 	dev_info(&priv->udev->dev, "Vendor: %.7s\n", efuse->vendor_name);
 	dev_info(&priv->udev->dev, "Product: %.11s\n", efuse->device_name);
@@ -435,8 +435,8 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 
 		dev_info(&priv->udev->dev,
 			 "%s: dumping efuse (0x%02zx bytes):\n",
-			 __func__, sizeof(struct rtl8188eu_efuse));
-		for (i = 0; i < sizeof(struct rtl8188eu_efuse); i += 8)
+			 __func__, sizeof(struct rtl8192eu_efuse));
+		for (i = 0; i < sizeof(struct rtl8192eu_efuse); i += 8)
 			dev_info(&priv->udev->dev, "%02x: %8ph\n", i, &raw[i]);
 	}
 	return 0;
