@@ -381,7 +381,7 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 	struct rtl8192eu_efuse *efuse = &priv->efuse_wifi.efuse8192eu;
 	int i;
 
-	if (efuse->rtl_id != cpu_to_le16(0x8188))
+	if (efuse->rtl_id != cpu_to_le16(0x8129))
 		return -EINVAL;
 
 	ether_addr_copy(priv->mac_addr, efuse->mac_addr);
