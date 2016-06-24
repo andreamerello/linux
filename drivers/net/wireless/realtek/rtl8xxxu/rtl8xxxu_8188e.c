@@ -486,12 +486,6 @@ static int rtl8188eu_init_phy_rf(struct rtl8xxxu_priv *priv)
 	int ret;
 
 	ret = rtl8xxxu_init_phy_rf(priv, rtl8188eu_radioa_init_table, RF_A);
-	if (ret)
-		goto exit;
-
-	ret = rtl8xxxu_init_phy_rf(priv, rtl8188eu_radiob_init_table, RF_B);
-
-exit:
 	return ret;
 }
 
