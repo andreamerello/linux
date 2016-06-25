@@ -1674,15 +1674,24 @@ static int rtl8xxxu_identify_chip(struct rtl8xxxu_priv *priv)
 		}
 		priv->has_wifi = 1;
 	} else {
-		sprintf(priv->chip_name, "8188CU");
-		priv->rf_paths = 1;
-		priv->rx_paths = 1;
-		priv->tx_paths = 1;
-		priv->rtl_chip = RTL8188C;
-		priv->usb_interrupts = 1;
+ 		if (priv->fops->rx_desc_size ==
+			sizeof(struct rtl8xxxu_txdesc24)) {
+			sprintf(priv->chip_name, "8188EU");
+			priv->rtl_chip = RTL8188E;
+			priv->rf_paths = 1;
+			priv->rx_paths = 1;
+			priv->tx_paths = 1;
+		} else {
+			sprintf(priv->chip_name, "8188CU");
+			priv->rf_paths = 1;
+			priv->rx_paths = 1;
+			priv->tx_paths = 1;
+			priv->rtl_chip = RTL8188C;
+			priv->usb_interrupts = 1;
+		}
 		priv->has_wifi = 1;
 	}
-#warning TODO check for 8188eu
+
 	switch (priv->rtl_chip) {
 	case RTL8188E:
 	case RTL8192E:
