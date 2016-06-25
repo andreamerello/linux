@@ -1121,36 +1121,24 @@ static void rtl8188e_crystal_afe_adjust(struct rtl8xxxu_priv *priv)
 	rtl8xxxu_write32(priv, REG_AFE_CTRL4, val32);
 }
 
+/* ok wrt staging */
 static void rtl8188e_disabled_to_emu(struct rtl8xxxu_priv *priv)
 {
-	u8 val8;
+	u16 val16;
 
-	/* Clear suspend enable and power down enable*/
-	val8 = rtl8xxxu_read8(priv, REG_APS_FSMCO + 1);
-	val8 &= ~(BIT(3) | BIT(4));
-	rtl8xxxu_write8(priv, REG_APS_FSMCO + 1, val8);
+	/* Clear power down enable*/
+	val16 = rtl8xxxu_read16(priv, REG_APS_FSMCO);
+	val16 &= ~BIT(15);
+	rtl8xxxu_write16(priv, REG_APS_FSMCO, val16);
 }
 
+/* ok wrt staging */
 static int rtl8188e_emu_to_active(struct rtl8xxxu_priv *priv)
 {
 	u8 val8;
 	u32 val32;
+	u16 val16;
 	int count, ret = 0;
-
-	/* disable HWPDN 0x04[15]=0*/
-	val8 = rtl8xxxu_read8(priv, REG_APS_FSMCO + 1);
-	val8 &= ~BIT(7);
-	rtl8xxxu_write8(priv, REG_APS_FSMCO + 1, val8);
-
-	/* disable SW LPS 0x04[10]= 0 */
-	val8 = rtl8xxxu_read8(priv, REG_APS_FSMCO + 1);
-	val8 &= ~BIT(2);
-	rtl8xxxu_write8(priv, REG_APS_FSMCO + 1, val8);
-
-	/* disable WL suspend*/
-	val8 = rtl8xxxu_read8(priv, REG_APS_FSMCO + 1);
-	val8 &= ~(BIT(3) | BIT(4));
-	rtl8xxxu_write8(priv, REG_APS_FSMCO + 1, val8);
 
 	/* wait till 0x04[17] = 1 power ready*/
 	for (count = RTL8XXXU_MAX_REG_POLL; count; count--) {
@@ -1166,12 +1154,25 @@ static int rtl8188e_emu_to_active(struct rtl8xxxu_priv *priv)
 		goto exit;
 	}
 
-	/* We should be able to optimize the following three entries into one */
+	/* reset baseband */
+	val8 = rtl8xxxu_read8(priv, REG_SYS_FUNC);
+	val8 &= ~(SYS_FUNC_BBRSTB | SYS_FUNC_BB_GLB_RSTN);
+	rtl8xxxu_write8(priv, REG_SYS_FUNC, val8);
 
-	/* release WLON reset 0x04[16]= 1*/
-	val8 = rtl8xxxu_read8(priv, REG_APS_FSMCO + 2);
-	val8 |= BIT(0);
-	rtl8xxxu_write8(priv, REG_APS_FSMCO + 2, val8);
+	/*0x24[23] = 2b'01 schmit trigger */
+	val32 = rtl8xxxu_read32(priv, REG_AFE_XTAL_CTRL);
+	val32 |= BIT(23);
+	rtl8xxxu_write32(priv, REG_AFE_XTAL_CTRL, val32);
+
+	/* 0x04[15] = 0 disable HWPDN (control by DRV)*/
+	val16 = rtl8xxxu_read16(priv, REG_APS_FSMCO);
+	val16 &= ~BIT(15);
+	rtl8xxxu_write16(priv, REG_APS_FSMCO, val16);
+
+	/*0x04[12:11] = 2b'00 disable WL suspend*/
+	val16 = rtl8xxxu_read16(priv, REG_APS_FSMCO);
+	val16 |= APS_FSMCO_HW_SUSPEND | APS_FSMCO_PCIE;
+	rtl8xxxu_write16(priv, REG_APS_FSMCO, val16);
 
 	/* set, then poll until 0 */
 	val32 = rtl8xxxu_read32(priv, REG_APS_FSMCO);
@@ -1192,6 +1193,11 @@ static int rtl8188e_emu_to_active(struct rtl8xxxu_priv *priv)
 		goto exit;
 	}
 
+	/*LDO normal mode*/
+	val8 = rtl8xxxu_read8(priv, REG_LPLDO_CTRL);
+	val8 &= ~BIT(4);
+	rtl8xxxu_write8(priv, REG_LPLDO_CTRL, val8);
+
 exit:
 	return ret;
 }
@@ -1201,37 +1207,6 @@ static int rtl8188eu_power_on(struct rtl8xxxu_priv *priv)
 	u16 val16;
 	u32 val32;
 	int ret;
-
-#if 0
-STAGING:
-
-
-
- 	{0x0006, PWR_CUT_ALL_MSK, PWR_CMD_POLLING, BIT(1), BIT(1)}, \
-	/* wait till 0x04[17] = 1    power ready*/	\
-
-		REG_SYS_FUNC
-	{0x0002, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(0) | BIT(1), 0}, \
-
-                SDIO_REG_HCPWM2
-	/* 0x02[1:0] = 0	reset BB*/				\
-	{0x0026, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(7), BIT(7)}, \
-
-
-	/*0x24[23] = 2b'01 schmit trigger */				\
-	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(7), 0}, \
-	/* 0x04[15] = 0 disable HWPDN (control by DRV)*/		\
-	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(4) | BIT(3), 0}, \
-	/*0x04[12:11] = 2b'00 disable WL suspend*/			\
-	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(0), BIT(0)}, \
-	/*0x04[8] = 1 polling until return 0*/				\
-	{0x0005, PWR_CUT_ALL_MSK, PWR_CMD_POLLING, BIT(0), 0}, \
-
-
-	/*wait till 0x04[8] = 0*/					\
-	{0x0023, PWR_CUT_ALL_MSK, PWR_CMD_WRITE, BIT(4), 0}, \
-	/*LDO normal mode*/
-#endif
 
 
 	ret = 0;
@@ -1249,11 +1224,12 @@ STAGING:
 		rtl8xxxu_write32(priv, REG_LDOV12D_CTRL, val32);
 		rtl8xxxu_write8(priv, REG_LDO_SW_CTRL, 0x83);
 	}
-#endif
+
 	/*
 	 * Adjust AFE before enabling PLL
 	 */
 	rtl8188e_crystal_afe_adjust(priv);
+#endif
 	rtl8188e_disabled_to_emu(priv);
 
 	ret = rtl8188e_emu_to_active(priv);
