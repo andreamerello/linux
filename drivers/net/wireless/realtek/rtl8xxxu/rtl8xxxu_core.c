@@ -1110,7 +1110,7 @@ static int rtl8xxxu_gen1_channel_to_group(int channel)
 }
 
 /*
- * Valid for rtl8723bu and rtl8192eu
+ * Valid for rtl8723bu, rtl8192eu and rtl8188eu
  */
 int rtl8xxxu_gen2_channel_to_group(int channel)
 {

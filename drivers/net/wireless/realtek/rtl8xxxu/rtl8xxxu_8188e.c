@@ -240,6 +240,7 @@ static struct rtl8xxxu_reg32val rtl8xxx_agc_8188eu_std_table[] = {
 
 
 // ok except for #ifdef UNKNOW (depends by board ?)
+#warning FIXME
 static struct rtl8xxxu_rfregval rtl8188eu_radioa_init_table[] = {
 	{0x00, 0x00030000}, {0x8, 0x00084000},
 	{0x18, 0x00000407}, {0x19, 0x00000012},
@@ -1294,9 +1295,9 @@ static void rtl8188e_enable_rf(struct rtl8xxxu_priv *priv)
 struct rtl8xxxu_fileops rtl8188eu_fops = {
 	.parse_efuse = rtl8188eu_parse_efuse, // ok
 	.load_firmware = rtl8188eu_load_firmware,
-	.power_on = rtl8188eu_power_on,
+	.power_on = rtl8188eu_power_on, // (almost?) ok
 	.power_off = rtl8xxxu_power_off,
-	.reset_8051 = rtl8xxxu_reset_8051,
+	.reset_8051 = rtl8xxxu_reset_8051, // ok
 	.llt_init = rtl8xxxu_auto_llt_table,
 	.init_phy_bb = rtl8188eu_init_phy_bb,
 	.init_phy_rf = rtl8188eu_init_phy_rf,
