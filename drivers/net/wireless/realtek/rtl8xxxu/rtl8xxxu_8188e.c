@@ -378,7 +378,7 @@ rtl8188e_set_tx_power(struct rtl8xxxu_priv *priv, int channel, bool ht40)
 
 static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 {
-	struct rtl8192eu_efuse *efuse = &priv->efuse_wifi.efuse8192eu;
+	struct rtl8188eu_efuse *efuse = &priv->efuse_wifi.efuse8188eu;
 	int i;
 
 	if (efuse->rtl_id != cpu_to_le16(0x8129))
@@ -386,45 +386,32 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 
 	ether_addr_copy(priv->mac_addr, efuse->mac_addr);
 
-	memcpy(priv->cck_tx_power_index_A, efuse->tx_power_index_A.cck_base,
-	       sizeof(efuse->tx_power_index_A.cck_base));
-	memcpy(priv->cck_tx_power_index_B, efuse->tx_power_index_B.cck_base,
-	       sizeof(efuse->tx_power_index_B.cck_base));
+	memcpy(priv->cck_tx_power_index_A, efuse->cck_tx_power_index_A,
+	       sizeof(efuse->cck_tx_power_index_A));
+	memcpy(priv->cck_tx_power_index_B, efuse->cck_tx_power_index_B,
+	       sizeof(efuse->cck_tx_power_index_B));
 
 	memcpy(priv->ht40_1s_tx_power_index_A,
-	       efuse->tx_power_index_A.ht40_base,
-	       sizeof(efuse->tx_power_index_A.ht40_base));
+	       priv->efuse_wifi.efuse8188eu.ht40_1s_tx_power_index_A,
+	       sizeof(priv->ht40_1s_tx_power_index_A));
 	memcpy(priv->ht40_1s_tx_power_index_B,
-	       efuse->tx_power_index_B.ht40_base,
-	       sizeof(efuse->tx_power_index_B.ht40_base));
-
-	priv->ht20_tx_power_diff[0].a =
-		efuse->tx_power_index_A.ht20_ofdm_1s_diff.b;
-	priv->ht20_tx_power_diff[0].b =
-		efuse->tx_power_index_B.ht20_ofdm_1s_diff.b;
-
-	priv->ht40_tx_power_diff[0].a = 0;
-	priv->ht40_tx_power_diff[0].b = 0;
-
-	for (i = 1; i < RTL8723B_TX_COUNT; i++) {
-		priv->ofdm_tx_power_diff[i].a =
-			efuse->tx_power_index_A.pwr_diff[i - 1].ofdm;
-		priv->ofdm_tx_power_diff[i].b =
-			efuse->tx_power_index_B.pwr_diff[i - 1].ofdm;
-
-		priv->ht20_tx_power_diff[i].a =
-			efuse->tx_power_index_A.pwr_diff[i - 1].ht20;
-		priv->ht20_tx_power_diff[i].b =
-			efuse->tx_power_index_B.pwr_diff[i - 1].ht20;
-
-		priv->ht40_tx_power_diff[i].a =
-			efuse->tx_power_index_A.pwr_diff[i - 1].ht40;
-		priv->ht40_tx_power_diff[i].b =
-			efuse->tx_power_index_B.pwr_diff[i - 1].ht40;
-	}
-
-	priv->has_xtalk = 1;
-	priv->xtalk = priv->efuse_wifi.efuse8192eu.xtal_k & 0x3f;
+	       priv->efuse_wifi.efuse8188eu.ht40_1s_tx_power_index_B,
+	       sizeof(priv->ht40_1s_tx_power_index_B));
+#if 0
+	+	memcpy(priv->ht20_tx_power_index_diff,
++	       priv->efuse_wifi.efuse8188eu.ht20_tx_power_index_diff,
++	       sizeof(priv->ht20_tx_power_index_diff));
++	memcpy(priv->ofdm_tx_power_index_diff,
++	       priv->efuse_wifi.efuse8188eu.ofdm_tx_power_index_diff,
++	       sizeof(priv->ofdm_tx_power_index_diff));
++
++	memcpy(priv->ht40_max_power_offset,
++	       priv->efuse_wifi.efuse8188eu.ht40_max_power_offset,
++	       sizeof(priv->ht40_max_power_offset));
++	memcpy(priv->ht20_max_power_offset,
++	       priv->efuse_wifi.efuse8188eu.ht20_max_power_offset,
++	       sizeof(priv->ht20_max_power_offset));
+#endif
 
 	dev_info(&priv->udev->dev, "Vendor: %.7s\n", efuse->vendor_name);
 	dev_info(&priv->udev->dev, "Product: %.11s\n", efuse->device_name);
@@ -435,8 +422,8 @@ static int rtl8188eu_parse_efuse(struct rtl8xxxu_priv *priv)
 
 		dev_info(&priv->udev->dev,
 			 "%s: dumping efuse (0x%02zx bytes):\n",
-			 __func__, sizeof(struct rtl8192eu_efuse));
-		for (i = 0; i < sizeof(struct rtl8192eu_efuse); i += 8)
+			 __func__, sizeof(struct rtl8188eu_efuse));
+		for (i = 0; i < sizeof(struct rtl8188eu_efuse); i += 8)
 			dev_info(&priv->udev->dev, "%02x: %8ph\n", i, &raw[i]);
 	}
 	return 0;
