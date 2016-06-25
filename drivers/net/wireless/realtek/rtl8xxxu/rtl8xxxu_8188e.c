@@ -1329,7 +1329,7 @@ static void rtl8188e_enable_rf(struct rtl8xxxu_priv *priv)
 }
 
 struct rtl8xxxu_fileops rtl8188eu_fops = {
-	.parse_efuse = rtl8188eu_parse_efuse,
+	.parse_efuse = rtl8188eu_parse_efuse, // ok
 	.load_firmware = rtl8188eu_load_firmware,
 	.power_on = rtl8188eu_power_on,
 	.power_off = rtl8xxxu_power_off,
@@ -1344,8 +1344,8 @@ struct rtl8xxxu_fileops rtl8188eu_fops = {
 	.disable_rf = rtl8xxxu_gen2_disable_rf,
 	.usb_quirks = rtl8xxxu_gen2_usb_quirks,   // seems ok
 	.set_tx_power = rtl8188e_set_tx_power,
-	.update_rate_mask = rtl8xxxu_gen2_update_rate_mask, // bho ?
-	.report_connect = rtl8xxxu_gen2_report_connect, // bho ?
+	.update_rate_mask = rtl8xxxu_gen2_update_rate_mask,
+	.report_connect = rtl8xxxu_gen2_report_connect,
 	.writeN_block_size = 128,
 	.tx_desc_size = sizeof(struct rtl8xxxu_txdesc32),  // ok
 	.rx_desc_size = sizeof(struct rtl8xxxu_rxdesc24), //  ok

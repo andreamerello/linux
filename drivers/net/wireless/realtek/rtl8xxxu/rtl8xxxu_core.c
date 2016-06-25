@@ -1675,7 +1675,7 @@ static int rtl8xxxu_identify_chip(struct rtl8xxxu_priv *priv)
 		priv->has_wifi = 1;
 	} else {
  		if (priv->fops->rx_desc_size ==
-			sizeof(struct rtl8xxxu_txdesc24)) {
+			sizeof(struct rtl8xxxu_rxdesc24)) {
 			sprintf(priv->chip_name, "8188EU");
 			priv->rtl_chip = RTL8188E;
 			priv->rf_paths = 1;
