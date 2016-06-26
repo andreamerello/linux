@@ -862,7 +862,7 @@ int rtl8xxxu_write_rfreg(struct rtl8xxxu_priv *priv,
 
 	data &= FPGA0_LSSI_PARM_DATA_MASK;
 	dataaddr = (reg << FPGA0_LSSI_PARM_ADDR_SHIFT) | data;
-#warning 8188eu ?
+
 	if (priv->rtl_chip == RTL8192E) {
 		val32 = rtl8xxxu_read32(priv, REG_FPGA0_POWER_SAVE);
 		val32 &= ~0x20000;
@@ -877,7 +877,7 @@ int rtl8xxxu_write_rfreg(struct rtl8xxxu_priv *priv,
 		retval = 0;
 
 	udelay(1);
-#warning 8188eu ?
+
 	if (priv->rtl_chip == RTL8192E) {
 		val32 = rtl8xxxu_read32(priv, REG_FPGA0_POWER_SAVE);
 		val32 |= 0x20000;
@@ -3974,9 +3974,10 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	ret = priv->fops->init_phy_rf(priv);
 	if (ret)
 		goto exit;
-#warning 8188eu ?
+
 	/* RFSW Control - clear bit 14 ?? */
-	if (priv->rtl_chip != RTL8723B && priv->rtl_chip != RTL8192E)
+	if (priv->rtl_chip != RTL8723B && priv->rtl_chip != RTL8192E &&
+		priv->rtl_chip != RTL8188E)
 		rtl8xxxu_write32(priv, REG_FPGA0_TX_INFO, 0x00000003);
 
 	val32 = FPGA0_RF_TRSW | FPGA0_RF_TRSWB | FPGA0_RF_ANTSW |
@@ -3987,18 +3988,19 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 			  (FPGA0_RF_PAPE << FPGA0_RF_BD_CTRL_SHIFT));
 	}
 	rtl8xxxu_write32(priv, REG_FPGA0_XAB_RF_SW_CTRL, val32);
-#warning 8188eu ?
+#warning recheck
 	/* 0x860[6:5]= 00 - why? - this sets antenna B */
-	if (priv->rtl_chip != RTL8192E)
+	if (priv->rtl_chip != RTL8192E && priv->rtl_chip != RTL8188E)
 		rtl8xxxu_write32(priv, REG_FPGA0_XA_RF_INT_OE, 0x66f60210);
 
 	if (!macpower) {
 		/*
 		 * Set TX buffer boundary
 		 */
-#warning 8188eu ?
 		if (priv->rtl_chip == RTL8192E)
 			val8 = TX_TOTAL_PAGE_NUM_8192E + 1;
+		else if (priv->rtl_chip == RTL8188E)
+			val8 = TX_TOTAL_PAGE_NUM_8188E + 1;
 		else
 			val8 = TX_TOTAL_PAGE_NUM + 1;
 
@@ -4018,7 +4020,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	 */
 	val8 = (priv->fops->pbp_rx << PBP_PAGE_SIZE_RX_SHIFT) |
 		(priv->fops->pbp_tx << PBP_PAGE_SIZE_TX_SHIFT);
-#warning 8188eu ?
+
 	if (priv->rtl_chip != RTL8192E)
 		rtl8xxxu_write8(priv, REG_PBP, val8);
 
@@ -4039,8 +4041,8 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 		 * Presumably this is for 8188EU as well
 		 * Enable TX report and TX report timer
 		 */
-#warning 8188eu ?
-		if (priv->rtl_chip == RTL8723B) {
+
+		if (priv->rtl_chip == RTL8723B || priv->rtl_chip == RTL8188E) {
 			val8 = rtl8xxxu_read8(priv, REG_TX_REPORT_CTRL);
 			val8 |= TX_REPORT_CTRL_TIMER_ENABLE;
 			rtl8xxxu_write8(priv, REG_TX_REPORT_CTRL, val8);
@@ -4048,7 +4050,9 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 			rtl8xxxu_write8(priv, REG_TX_REPORT_CTRL + 1, 0x02);
 			/* TX report Timer. Unit: 32us */
 			rtl8xxxu_write16(priv, REG_TX_REPORT_TIME, 0xcdf0);
+		}
 
+		if (priv->rtl_chip == RTL8723B) {
 			/* tmp ps ? */
 			val8 = rtl8xxxu_read8(priv, 0xa3);
 			val8 &= 0xf8;
@@ -4195,7 +4199,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 	 * Start out with default power levels for channel 6, 20MHz
 	 */
 	priv->fops->set_tx_power(priv, 1, false);
-#warning 8188eu ?
+#warning antenna or led ?
 	/* Let the 8051 take control of antenna setting */
 	if (priv->rtl_chip != RTL8192E) {
 		val8 = rtl8xxxu_read8(priv, REG_LEDCFG2);
@@ -4227,6 +4231,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 		rtl8xxxu_write8(priv, REG_ACLK_MON, 0x00);
 	}
 
+	// seems ok for 8188
 	rtl8723a_phy_lc_calibrate(priv);
 
 	priv->fops->phy_iq_calibrate(priv);
@@ -4255,8 +4260,7 @@ static int rtl8xxxu_init_device(struct ieee80211_hw *hw)
 			val32 |= FPGA_RF_MODE_CCK;
 			rtl8xxxu_write32(priv, REG_FPGA0_RF_MODE, val32);
 		}
-	} else if (priv->rtl_chip == RTL8192E) {
-#warning 8188eu ?
+	} else if (priv->rtl_chip == RTL8192E || priv->rtl_chip == RTL8188E) {
 		rtl8xxxu_write8(priv, REG_USB_HRPWM, 0x00);
 	}
 
