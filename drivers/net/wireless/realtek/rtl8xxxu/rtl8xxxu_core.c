@@ -1693,7 +1693,6 @@ static int rtl8xxxu_identify_chip(struct rtl8xxxu_priv *priv)
 	}
 
 	switch (priv->rtl_chip) {
-	case RTL8188E:
 	case RTL8192E:
 	case RTL8723B:
 		switch (val32 & SYS_CFG_VENDOR_EXT_MASK) {
