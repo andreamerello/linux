@@ -873,7 +873,8 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 
 	/* Page B init */
 	/* AP or IQK */
-	phy_set_bb_reg(adapt, rConfig_AntA, bMaskDWord, 0x0f600000);
+
+	rtl8xxxu_write32(priv, REG_CONFIG_ANT_A, 0x0f600000);
 #if 0
 	if (is2t)
 		phy_set_bb_reg(adapt, rConfig_AntB, bMaskDWord, 0x0f600000);
@@ -990,8 +991,7 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 				      priv->bb_backup, RTL8XXXU_BB_REGS);
 
 		/* Restore RX initial gain */
-		phy_set_bb_reg(adapt, rFPGA0_XA_LSSIParameter,
-			       bMaskDWord, 0x00032ed3);
+		rtl8xxxu_write32(priv, REG_FPGA0_XA_LSSI_PARM, 0x00032ed3);
 
 #if 0
 		if (priv->rf_paths > 1) {
