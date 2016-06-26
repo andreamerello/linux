@@ -859,7 +859,6 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 	rtl8xxxu_write32(priv, REG_OFDM0_TR_MUX_PAR, 0x000800e4);
 	rtl8xxxu_write32(priv, REG_FPGA0_XCD_RF_SW_CTRL, 0x22204000);
 
-#warning check that val32 is or-ed with bit10 and bit26
 	val32 = rtl8xxxu_read32(priv, REG_FPGA0_XAB_RF_SW_CTRL);
 	val32 |= (FPGA0_RF_PAPE | (FPGA0_RF_PAPE << FPGA0_RF_BD_CTRL_SHIFT));
 	rtl8xxxu_write32(priv, REG_FPGA0_XAB_RF_SW_CTRL, val32);
@@ -1020,9 +1019,7 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 	}
 }
 
-/* use of gen2_simularity_compare OK (consistent wrt staging)  */
-
-#warning TODO: check wrt cal code in staging/rtl8188ue/hal/phy.c
+/* almost ok  */
 static void rtl8188eu_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
 {
 	struct device *dev = &priv->udev->dev;
@@ -1329,9 +1326,9 @@ struct rtl8xxxu_fileops rtl8188eu_fops = {
 	.power_off = rtl8xxxu_power_off,
 	.reset_8051 = rtl8xxxu_reset_8051, // ok
 	.llt_init = rtl8xxxu_auto_llt_table,
-	.init_phy_bb = rtl8188eu_init_phy_bb,
+	.init_phy_bb = rtl8188eu_init_phy_bb, // almost ok
 	.init_phy_rf = rtl8188eu_init_phy_rf,
-	.phy_iq_calibrate = rtl8188eu_phy_iq_calibrate,
+	.phy_iq_calibrate = rtl8188eu_phy_iq_calibrate, // almost ok
 	.config_channel = rtl8xxxu_gen2_config_channel,
 	.parse_rx_desc = rtl8xxxu_parse_rxdesc24, //ok
 	.enable_rf = rtl8188e_enable_rf,
