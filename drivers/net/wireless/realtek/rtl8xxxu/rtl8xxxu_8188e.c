@@ -442,10 +442,12 @@ static int rtl8188eu_load_firmware(struct rtl8xxxu_priv *priv)
 	return ret;
 }
 
+/* almost ok, except for the #warning */
 static void rtl8188eu_init_phy_bb(struct rtl8xxxu_priv *priv)
 {
 	u8 val8;
 	u16 val16;
+	u32 val32;
 
 	val16 = rtl8xxxu_read16(priv, REG_SYS_FUNC);
 	val16 |= SYS_FUNC_BB_GLB_RSTN | SYS_FUNC_BBRSTB | SYS_FUNC_DIO_RF;
@@ -455,18 +457,27 @@ static void rtl8188eu_init_phy_bb(struct rtl8xxxu_priv *priv)
 	val8 = RF_ENABLE | RF_RSTB | RF_SDMRSTB;
 	rtl8xxxu_write8(priv, REG_RF_CTRL, val8);
 
-	val16 = rtl8xxxu_read16(priv, REG_SYS_FUNC);
-	val16 |= (SYS_FUNC_USBA | SYS_FUNC_USBD | SYS_FUNC_DIO_RF |
+	val8 = (SYS_FUNC_USBA | SYS_FUNC_USBD |
 		  SYS_FUNC_BB_GLB_RSTN | SYS_FUNC_BBRSTB);
-	rtl8xxxu_write16(priv, REG_SYS_FUNC, val16);
-	val8 = RF_ENABLE | RF_RSTB | RF_SDMRSTB;
-	rtl8xxxu_write8(priv, REG_RF_CTRL, val8);
+	rtl8xxxu_write8(priv, REG_SYS_FUNC, val8);
+
 	rtl8xxxu_init_phy_regs(priv, rtl8188eu_phy_init_table);
 
-//	if (priv->hi_pa)
-//		rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_highpa_table);
-//	else
-		rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_std_table);
+#warning array_phy_reg_pg_8188e
+
+	rtl8xxxu_init_phy_regs(priv, rtl8xxx_agc_8188eu_std_table);
+
+	/* write 0x24[16:11] = 0x24[22:17] = crystal_cap
+	 * crystal_cap = hal_data->CrystalCap & 0x3F;
+	 * phy_set_bb_reg(adapt, REG_AFE_XTAL_CTRL, 0x7ff800,
+	 *	       (crystal_cap | (crystal_cap << 6)));
+	 *
+	 *  CrystalCap seems never assigned in staging drv.
+	 *  hal_data is kzalloc-ed, so assume zero.
+	 */
+	val32 = rtl8xxxu_read32(priv, REG_AFE_XTAL_CTRL);
+	val32 &= 0x7ff800;
+	rtl8xxxu_write32(priv, REG_AFE_XTAL_CTRL, val32);
 }
 
 static int rtl8188eu_init_phy_rf(struct rtl8xxxu_priv *priv)
