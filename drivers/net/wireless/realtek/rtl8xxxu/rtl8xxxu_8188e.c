@@ -785,6 +785,9 @@ out:
 }
 #endif
 
+/* this is very similar to rtl8xxxu_phy_iqcalibrate.
+ * Can we merge ?
+ */
 static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 				      int result[][8], int t)
 {
@@ -825,15 +828,17 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 
 	rtl8xxxu_path_adda_on(priv, adda_regs, true);
 
-	if (t == 0)
-		dm_odm->RFCalibrateInfo.bRfPiEnable = (u8)phy_query_bb_reg(adapt, rFPGA0_XA_HSSIParameter1,
-									   BIT(8));
-
-	if (!dm_odm->RFCalibrateInfo.bRfPiEnable) {
-		/*  Switch BB to PI mode to do IQ Calibration. */
-		pi_mode_switch(adapt, true);
+	if (t == 0) {
+		val32 = rtl8xxxu_read32(priv, REG_FPGA0_XA_HSSI_PARM1);
+		if (val32 & FPGA0_HSSI_PARM1_PI)
+			priv->pi_enabled = 1;
 	}
 
+	if (!priv->pi_enabled) {
+		/*  Switch BB to PI mode to do IQ Calibration. */
+		rtl8xxxu_write32(priv, REG_FPGA0_XA_HSSI_PARM1, 0x01000100);
+		rtl8xxxu_write32(priv, REG_FPGA0_XB_HSSI_PARM1, 0x01000100);
+	}
 
 	val32 = rtl8xxxu_read32(priv, REG_FPGA0_RF_MODE);
 	val32 &= ~BIT(24);
@@ -959,12 +964,18 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 	/* Back to BB mode, load original value */
 	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x00000000);
 
+	/* bha.. maybe "first" and  "last" could do a better
+	 * job, instead of this ugly "t" ..
+	 */
 	if (t) {
-		if (!dm_odm->RFCalibrateInfo.bRfPiEnable) {
-			/* Switch back BB to SI mode after
-			 * finish IQ Calibration.
+		if (!priv->pi_enabled) {
+			/*
+			 * Switch back BB to SI mode after finishing
+			 * IQ Calibration
 			 */
-			pi_mode_switch(adapt, false);
+			val32 = 0x01000000;
+			rtl8xxxu_write32(priv, REG_FPGA0_XA_HSSI_PARM1, val32);
+			rtl8xxxu_write32(priv, REG_FPGA0_XB_HSSI_PARM1, val32);
 		}
 
 		/* Reload ADDA power saving parameters */
