@@ -477,27 +477,17 @@ static int rtl8188eu_init_phy_rf(struct rtl8xxxu_priv *priv)
 	return ret;
 }
 
+/* ok */
 static int rtl8188eu_iqk_path_a(struct rtl8xxxu_priv *priv)
 {
 	u32 reg_eac, reg_e94, reg_e9c;
 	int result = 0;
 
-	/*
-	 * TX IQK
-	 * PA/PAD controlled by 0x0
-	 */
-	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x00000000);
-	rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_UNKNOWN_DF, 0x00180);
-	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x80800000);
-
 	/* Path A IQK setting */
 	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_A, 0x18008c1c);
 	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_A, 0x38008c1c);
-	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_B, 0x38008c1c);
-	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_B, 0x38008c1c);
-
-	rtl8xxxu_write32(priv, REG_TX_IQK_PI_A, 0x82140303);
-	rtl8xxxu_write32(priv, REG_RX_IQK_PI_A, 0x68160000);
+	rtl8xxxu_write32(priv, REG_TX_IQK_PI_A, 0x8214032a);
+	rtl8xxxu_write32(priv, REG_RX_IQK_PI_A, 0x28160000);
 
 	/* LO calibration setting */
 	rtl8xxxu_write32(priv, REG_IQK_AGC_RSP, 0x00462911);
@@ -521,6 +511,7 @@ static int rtl8188eu_iqk_path_a(struct rtl8xxxu_priv *priv)
 	return result;
 }
 
+/* ok */
 static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 {
 	u32 reg_ea4, reg_eac, reg_e94, reg_e9c, val32;
@@ -547,19 +538,17 @@ static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 	rtl8xxxu_write32(priv, REG_RX_IQK, 0x01004800);
 
 	/* path-A IQK setting */
-	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_A, 0x18008c1c);
-	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_A, 0x38008c1c);
-	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_B, 0x38008c1c);
-	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_B, 0x38008c1c);
+	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_A, 0x10008c1c);
+	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_A, 0x30008c1c);
 
 	rtl8xxxu_write32(priv, REG_TX_IQK_PI_A, 0x82160c1f);
-	rtl8xxxu_write32(priv, REG_RX_IQK_PI_A, 0x68160c1f);
+	rtl8xxxu_write32(priv, REG_RX_IQK_PI_A, 0x28160000);
 
 	/* LO calibration setting */
 	rtl8xxxu_write32(priv, REG_IQK_AGC_RSP, 0x0046a911);
 
 	/* One shot, path A LOK & IQK */
-	rtl8xxxu_write32(priv, REG_IQK_AGC_PTS, 0xfa000000);
+	rtl8xxxu_write32(priv, REG_IQK_AGC_PTS, 0xf9000000);
 	rtl8xxxu_write32(priv, REG_IQK_AGC_PTS, 0xf8000000);
 
 	mdelay(10);
@@ -573,12 +562,8 @@ static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 	    ((reg_e94 & 0x03ff0000) != 0x01420000) &&
 	    ((reg_e9c & 0x03ff0000) != 0x00420000)) {
 		result |= 0x01;
-	} else {
-		/* PA/PAD controlled by 0x0 */
-		rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x00000000);
-		rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_UNKNOWN_DF, 0x180);
+	} else
 		goto out;
-	}
 
 	val32 = 0x80007c00 |
 		(reg_e94 & 0x03ff0000) | ((reg_e9c >> 16) & 0x03ff);
@@ -592,10 +577,6 @@ static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 	rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_TXPA_G1, 0x0000f);
 	rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_TXPA_G2, 0xf7ffa);
 
-	/* PA/PAD control by 0x56, and set = 0x0 */
-	rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_UNKNOWN_DF, 0x00980);
-	rtl8xxxu_write_rfreg(priv, RF_A, RF6052_REG_UNKNOWN_56, 0x51000);
-
 	/* Enter IQK mode */
 	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x80800000);
 
@@ -605,14 +586,12 @@ static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 	/* Path A IQK setting */
 	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_A, 0x38008c1c);
 	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_A, 0x18008c1c);
-	rtl8xxxu_write32(priv, REG_TX_IQK_TONE_B, 0x38008c1c);
-	rtl8xxxu_write32(priv, REG_RX_IQK_TONE_B, 0x38008c1c);
 
-	rtl8xxxu_write32(priv, REG_TX_IQK_PI_A, 0x82160c1f);
+	rtl8xxxu_write32(priv, REG_TX_IQK_PI_A, 0x82160c05);
 	rtl8xxxu_write32(priv, REG_RX_IQK_PI_A, 0x28160c1f);
 
 	/* LO calibration setting */
-	rtl8xxxu_write32(priv, REG_IQK_AGC_RSP, 0x0046a891);
+	rtl8xxxu_write32(priv, REG_IQK_AGC_RSP, 0x0046a911);
 
 	/* One shot, path A LOK & IQK */
 	rtl8xxxu_write32(priv, REG_IQK_AGC_PTS, 0xfa000000);
@@ -637,7 +616,7 @@ static int rtl8188eu_rx_iqk_path_a(struct rtl8xxxu_priv *priv)
 out:
 	return result;
 }
-
+#if 0
 static int rtl8188eu_iqk_path_b(struct rtl8xxxu_priv *priv)
 {
 	u32 reg_eac, reg_eb4, reg_ebc;
@@ -804,6 +783,7 @@ static int rtl8188eu_rx_iqk_path_b(struct rtl8xxxu_priv *priv)
 out:
 	return result;
 }
+#endif
 
 static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 				      int result[][8], int t)
@@ -830,15 +810,9 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 		REG_OFDM0_TRX_PATH_ENABLE, REG_OFDM0_TR_MUX_PAR,
 		REG_FPGA0_XCD_RF_SW_CTRL, REG_CONFIG_ANT_A, REG_CONFIG_ANT_B,
 		REG_FPGA0_XAB_RF_SW_CTRL, REG_FPGA0_XA_RF_INT_OE,
-		REG_FPGA0_XB_RF_INT_OE, REG_CCK0_AFE_SETTING
+		REG_FPGA0_XB_RF_INT_OE, REG_FPGA0_RF_MODE
 	};
-	u8 xa_agc = rtl8xxxu_read32(priv, REG_OFDM0_XA_AGC_CORE1) & 0xff;
-	u8 xb_agc = rtl8xxxu_read32(priv, REG_OFDM0_XB_AGC_CORE1) & 0xff;
 
-	/*
-	 * Note: IQ calibration must be performed after loading
-	 *       PHY_REG.txt , and radio_a, radio_b.txt
-	 */
 
 	if (t == 0) {
 		/* Save ADDA parameters, turn Path A ADDA on */
@@ -851,17 +825,25 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 
 	rtl8xxxu_path_adda_on(priv, adda_regs, true);
 
-	/* MAC settings */
-	rtl8xxxu_mac_calibration(priv, iqk_mac_regs, priv->mac_backup);
+	if (t == 0)
+		dm_odm->RFCalibrateInfo.bRfPiEnable = (u8)phy_query_bb_reg(adapt, rFPGA0_XA_HSSIParameter1,
+									   BIT(8));
 
-	val32 = rtl8xxxu_read32(priv, REG_CCK0_AFE_SETTING);
-	val32 |= 0x0f000000;
-	rtl8xxxu_write32(priv, REG_CCK0_AFE_SETTING, val32);
+	if (!dm_odm->RFCalibrateInfo.bRfPiEnable) {
+		/*  Switch BB to PI mode to do IQ Calibration. */
+		pi_mode_switch(adapt, true);
+	}
+
+
+	val32 = rtl8xxxu_read32(priv, REG_FPGA0_RF_MODE);
+	val32 &= ~BIT(24);
+	rtl8xxxu_write32(priv, REG_FPGA0_RF_MODE, val32);
 
 	rtl8xxxu_write32(priv, REG_OFDM0_TRX_PATH_ENABLE, 0x03a05600);
 	rtl8xxxu_write32(priv, REG_OFDM0_TR_MUX_PAR, 0x000800e4);
-	rtl8xxxu_write32(priv, REG_FPGA0_XCD_RF_SW_CTRL, 0x22208200);
+	rtl8xxxu_write32(priv, REG_FPGA0_XCD_RF_SW_CTRL, 0x22204000);
 
+#warning check that val32 is or-ed with bit10 and bit26
 	val32 = rtl8xxxu_read32(priv, REG_FPGA0_XAB_RF_SW_CTRL);
 	val32 |= (FPGA0_RF_PAPE | (FPGA0_RF_PAPE << FPGA0_RF_BD_CTRL_SHIFT));
 	rtl8xxxu_write32(priv, REG_FPGA0_XAB_RF_SW_CTRL, val32);
@@ -872,6 +854,25 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 	val32 = rtl8xxxu_read32(priv, REG_FPGA0_XB_RF_INT_OE);
 	val32 |= BIT(10);
 	rtl8xxxu_write32(priv, REG_FPGA0_XB_RF_INT_OE, val32);
+#if 0
+	if (is2t) {
+		phy_set_bb_reg(adapt, rFPGA0_XA_LSSIParameter, bMaskDWord,
+			       0x00010000);
+		phy_set_bb_reg(adapt, rFPGA0_XB_LSSIParameter, bMaskDWord,
+			       0x00010000);
+	}
+#endif
+	#warning checkme
+	/* MAC settings */
+	rtl8xxxu_mac_calibration(priv, iqk_mac_regs, priv->mac_backup);
+
+	/* Page B init */
+	/* AP or IQK */
+	phy_set_bb_reg(adapt, rConfig_AntA, bMaskDWord, 0x0f600000);
+#if 0
+	if (is2t)
+		phy_set_bb_reg(adapt, rConfig_AntB, bMaskDWord, 0x0f600000);
+#endif
 
 	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x80800000);
 	rtl8xxxu_write32(priv, REG_TX_IQK, 0x01007c00);
@@ -910,7 +911,7 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 
 	if (!path_a_ok)
 		dev_dbg(dev, "%s: Path A RX IQK failed!\n", __func__);
-
+#if 0
 	if (priv->rf_paths > 1) {
 		/* Path A into standby */
 		rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x00000000);
@@ -954,11 +955,18 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 		if (!path_b_ok)
 			dev_dbg(dev, "%s: Path B RX IQK failed!\n", __func__);
 	}
-
+#endif
 	/* Back to BB mode, load original value */
 	rtl8xxxu_write32(priv, REG_FPGA0_IQK, 0x00000000);
 
 	if (t) {
+		if (!dm_odm->RFCalibrateInfo.bRfPiEnable) {
+			/* Switch back BB to SI mode after
+			 * finish IQ Calibration.
+			 */
+			pi_mode_switch(adapt, false);
+		}
+
 		/* Reload ADDA power saving parameters */
 		rtl8xxxu_restore_regs(priv, adda_regs, priv->adda_backup,
 				      RTL8XXXU_ADDA_REGS);
@@ -971,11 +979,10 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 				      priv->bb_backup, RTL8XXXU_BB_REGS);
 
 		/* Restore RX initial gain */
-		val32 = rtl8xxxu_read32(priv, REG_OFDM0_XA_AGC_CORE1);
-		val32 &= 0xffffff00;
-		rtl8xxxu_write32(priv, REG_OFDM0_XA_AGC_CORE1, val32 | 0x50);
-		rtl8xxxu_write32(priv, REG_OFDM0_XA_AGC_CORE1, val32 | xa_agc);
+		phy_set_bb_reg(adapt, rFPGA0_XA_LSSIParameter,
+			       bMaskDWord, 0x00032ed3);
 
+#if 0
 		if (priv->rf_paths > 1) {
 			val32 = rtl8xxxu_read32(priv, REG_OFDM0_XB_AGC_CORE1);
 			val32 &= 0xffffff00;
@@ -984,7 +991,7 @@ static void rtl8188eu_phy_iqcalibrate(struct rtl8xxxu_priv *priv,
 			rtl8xxxu_write32(priv, REG_OFDM0_XB_AGC_CORE1,
 					 val32 | xb_agc);
 		}
-
+#endif
 		/* Load 0xe30 IQC default value */
 		rtl8xxxu_write32(priv, REG_TX_IQK_TONE_A, 0x01008c00);
 		rtl8xxxu_write32(priv, REG_RX_IQK_TONE_A, 0x01008c00);
@@ -1000,11 +1007,14 @@ static void rtl8188eu_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
 	int result[4][8];	/* last is final result */
 	int i, candidate;
 	bool path_a_ok, path_b_ok;
-	u32 reg_e94, reg_e9c, reg_ea4, reg_eac;
-	u32 reg_eb4, reg_ebc, reg_ec4, reg_ecc;
+	u32 reg_e94, reg_e9c, reg_ea4;
+	u32 reg_eb4, reg_ebc, reg_ec4;
 	bool simu;
 
 	memset(result, 0, sizeof(result));
+	for (i = 0; i <= 3; i++)
+		result[3][i * 2] = 0x100;
+
 	candidate = -1;
 
 	path_a_ok = false;
@@ -1039,35 +1049,31 @@ static void rtl8188eu_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
 		}
 	}
 
-	for (i = 0; i < 4; i++) {
-		reg_e94 = result[i][0];
-		reg_e9c = result[i][1];
-		reg_ea4 = result[i][2];
-		reg_eac = result[i][3];
-		reg_eb4 = result[i][4];
-		reg_ebc = result[i][5];
-		reg_ec4 = result[i][6];
-		reg_ecc = result[i][7];
-	}
+	reg_e94 = result[3][0];
+	reg_e9c = result[3][1];
+	reg_ea4 = result[3][2];
+	reg_eb4 = result[3][4];
+	reg_ebc = result[3][5];
+	reg_ec4 = result[3][6];
 
 	if (candidate >= 0) {
 		reg_e94 = result[candidate][0];
-		priv->rege94 =  reg_e94;
 		reg_e9c = result[candidate][1];
-		priv->rege9c = reg_e9c;
 		reg_ea4 = result[candidate][2];
-		reg_eac = result[candidate][3];
 		reg_eb4 = result[candidate][4];
-		priv->regeb4 = reg_eb4;
 		reg_ebc = result[candidate][5];
-		priv->regebc = reg_ebc;
 		reg_ec4 = result[candidate][6];
-		reg_ecc = result[candidate][7];
+
+		priv->rege9c = reg_e9c;
+		priv->regeb4 = reg_eb4;
+		priv->regebc = reg_ebc;
+		priv->rege94 = reg_e94;
+
 		dev_dbg(dev, "%s: candidate is %x\n", __func__, candidate);
 		dev_dbg(dev,
-			"%s: e94 =%x e9c=%x ea4=%x eac=%x eb4=%x ebc=%x ec4=%x "
-			"ecc=%x\n ", __func__, reg_e94, reg_e9c,
-			reg_ea4, reg_eac, reg_eb4, reg_ebc, reg_ec4, reg_ecc);
+			"%s: e94 =%x e9c=%x ea4=%x eb4=%x ebc=%x ec4=%x ",
+			__func__, reg_e94, reg_e9c,
+			reg_ea4, reg_eb4, reg_ebc, reg_ec4);
 		path_a_ok = true;
 		path_b_ok = true;
 	} else {
@@ -1082,6 +1088,8 @@ static void rtl8188eu_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
 	if (priv->rf_paths > 1)
 		rtl8xxxu_fill_iqk_matrix_b(priv, path_b_ok, result,
 					   candidate, (reg_ec4 == 0));
+
+#warning get right channel for iqk
 
 	rtl8xxxu_save_regs(priv, rtl8xxxu_iqk_phy_iq_bb_reg,
 			   priv->bb_recovery_backup, RTL8XXXU_BB_REGS);
