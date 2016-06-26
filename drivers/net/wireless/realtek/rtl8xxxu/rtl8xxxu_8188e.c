@@ -476,7 +476,7 @@ static void rtl8188eu_init_phy_bb(struct rtl8xxxu_priv *priv)
 	 *  hal_data is kzalloc-ed, so assume zero.
 	 */
 	val32 = rtl8xxxu_read32(priv, REG_AFE_XTAL_CTRL);
-	val32 &= 0x7ff800;
+	val32 &= ~0x3f800;
 	rtl8xxxu_write32(priv, REG_AFE_XTAL_CTRL, val32);
 }
 
