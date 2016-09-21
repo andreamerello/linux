@@ -213,14 +213,16 @@ static int stts751_update_temp(struct stts751_priv *priv)
 	 */
 	integer1 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
 	if (integer1 < 0) {
-		dev_dbg(&priv->client->dev, "failed to read H reg %x\n", ret);
+		dev_dbg(&priv->client->dev,
+			"I2C read failed (temp H). ret: %x\n", ret);
 		ret = integer1;
 		goto exit;
 	}
 
 	frac = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_L);
 	if (frac < 0) {
-		dev_dbg(&priv->client->dev, "failed to read L reg %x\n", ret);
+		dev_dbg(&priv->client->dev,
+			"I2C read failed (temp L). ret: %x\n", ret);
 		ret = frac;
 		goto exit;
 	}
@@ -228,15 +230,17 @@ static int stts751_update_temp(struct stts751_priv *priv)
 	integer2 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
 	if (integer2 < 0) {
 		dev_dbg(&priv->client->dev,
-			"failed to read H reg (2nd time) %x\n", ret);
+			"I2C 2nd read failed (temp H). ret: %x\n", ret);
 		ret = integer2;
 		goto exit;
 	}
 
 	if (integer1 != integer2) {
-		frac = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_L);
+		frac = i2c_smbus_read_byte_data(priv->client,
+						STTS751_REG_TEMP_L);
 		if (frac < 0) {
-			dev_dbg(&priv->client->dev, "failed to read L reg %x\n", ret);
+			dev_dbg(&priv->client->dev,
+				"I2C 2nd read failed (temp L). ret: %x\n", ret);
 			ret = frac;
 			goto exit;
 		}
