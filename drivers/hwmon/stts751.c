@@ -126,40 +126,24 @@ struct stts751_priv {
 };
 
 /*
- * Converts temperature in C split in integer and fractional parts, as supplied
- * by the HW, to an integer number in mC
+ * These functions converts temperature from HW format to integer format and
+ * vice-vers. They are (mostly) taken from lm90 driver. Unit is in mC.
  */
-static int stts751_to_deg(s32 integer, s32 frac)
+static int stts751_to_deg(s32 hw_val)
 {
-	s32 temp;
-
-	/*
-	 * frac part is supplied by the HW as a numbert whose bits weight, from
-	 * MSB to LSB, are 2-e1, 2e-2 .. 2e-8; while stored as a regular integer
-	 * it would be interpreted as usual (2e+128, 2e+64 ...), so we basically
-	 * need to divide it by 256 to ajust the bits' weight.
-	 * However this would squash it to zero, so let's convert in in mC (mul
-	 * by 1000) right before divide.
-	 */
-	frac = frac * 1000 / 256;
-	temp = sign_extend32(integer, 7) * 1000L + frac;
-
-	return temp;
+	return hw_val * 125 / 32;
 }
 
-/*
- * Converts temperature in mC to value in C split in integer and fractional
- * parts, as the HW wants.
- */
-static int stts751_to_hw(int val, u8 *integer, u8 *frac)
+static s16 stts751_to_hw(int val, s32 *hw_val)
 {
 	/* HW works in range -64C to +127C */
 	if ((val > 127000) || (val < -64000))
 		return -EINVAL;
 
-	*integer = val / 1000;
-	/* *frac = 256 * (val % 1000) */
-	*frac = 256 * (long)(val - *integer * 1000) / 1000;
+	if (val < 0)
+		*hw_val = (val - 62) / 125 * 32;
+	else
+		*hw_val = (val + 62) / 125 * 32;
 
 	return 0;
 }
@@ -251,25 +235,25 @@ exit:
 	if (ret)
 		return ret;
 
-	priv->temp = stts751_to_deg(integer2, frac);
+	priv->temp = stts751_to_deg((integer1 << 8) | frac);
 	return ret;
 }
 
 static int stts751_set_temp_reg(struct stts751_priv *priv, int temp,
 				bool is_frac, u8 hreg, u8 lreg)
 {
-	u8 integer, frac;
+	s32 hwval;
 	int ret;
 
-	if (stts751_to_hw(temp, &integer, &frac))
+	if (stts751_to_hw(temp, &hwval))
 		return -EINVAL;
 
 	mutex_lock(&priv->access_lock);
-	ret = i2c_smbus_write_byte_data(priv->client, hreg, integer);
+	ret = i2c_smbus_write_byte_data(priv->client, hreg, hwval >> 8);
 	if (ret)
 		goto exit;
 	if (is_frac)
-		ret = i2c_smbus_write_byte_data(priv->client, lreg, frac);
+		ret = i2c_smbus_write_byte_data(priv->client, lreg, hwval & 0xff);
 exit:
 	mutex_unlock(&priv->access_lock);
 
