@@ -750,8 +750,7 @@ static int stts751_probe(struct i2c_client *client,
 	int groups_idx = 0;
 	struct device_node *np = client->dev.of_node;
 
-	priv = devm_kzalloc(&client->dev,
-			sizeof(struct stts751_priv), GFP_KERNEL);
+	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
 		return -ENOMEM;
 
