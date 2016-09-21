@@ -7,53 +7,7 @@
  *
  * Written by Andrea Merello <andrea.merello@gmail.com>
  *
- * Based on the following drivers:
- * - LM95241 driver, which is:
- *   Copyright (C) 2008, 2010 Davide Rizzo <elpa.rizzo@gmail.com>
- * - LM90 driver, which is:
- *   Copyright (C) 2003-2010  Jean Delvare <jdelvare@suse.de>
- *
- * *******************************************************************
- * NOTE: the STTS751 can reach resolution up to 12 bit. However this
- * is not always possible/reliable.
- *
- * This is because if the device has to generate a thermal/alert
- * signal, it has to perform continuous conversions. In this case the
- * max attainable resolution depends by the conversion rate.
- * Even worse, reading the temperature with resolution better than 8
- * bits would require reading *two* temperature registers, and this is
- * exactly what you want NOT to do when the device is running
- * asynchronously. (looking at the datasheet I couldn't find any trick
- * to emulate an atomic read: no shadow registers, no any 'update' bit
- * to set..).
- *
- * So, it seems we have three choices here (feel free to suggest any
- * other..):
- *
- * 1) Don't care: once every several conversions you'll get a somewhat
- *    imprecise value.. I hate it!
- *    Tricking the user providing him/her super-precise readings that
- *    sometimes are indeed quite imprecise seems really sneaky to me.
- *
- * 2) Stop the device, perform a synchronous conversion, and start it
- *    again. I'm quite tempted to do this..
- *
- * 3) Limit the resolution to 8-bit when the sensor is running. This
- *    would be both perfectly safe and "correct".
- *
- * 4) Try to detect if we went racy, retry the reading few times, and
- *    return the best we can (eventually falling back to 3).
- *
- * Since the thermal/alert signal could be potentially an important
- * protection needed not to fry the HW, I decided that the option 2
- * is too risky (what if when we try to re-enable the sensor our smbus
- * write fails?).
- *
- * Obviously I didn't choose the one I hate, so the only remaining
- * option are 3 and 4.
- *
- * 4 is possibly slower than 3 but it seems reasonable; so I choose 4
- * ********************************************************************
+ * Based on  LM95241 driver and LM90 driver
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -145,9 +99,6 @@ static const struct stts751_intervals_t stts751_intervals[] = {
 	{.str = "62.5", .val = 62},
 	{.str = "31.25", .val = 31}
 };
-
-/* special value to indicate to the SW to use manual mode */
-#define STTS751_INTERVAL_MANUAL 0xFF
 
 struct stts751_priv {
 	struct device *dev;
@@ -245,71 +196,50 @@ static int stts751_adjust_resolution(struct stts751_priv *priv)
 static int stts751_update_temp(struct stts751_priv *priv)
 {
 	s32 integer1, integer2, frac;
-	unsigned long sample1, sample2, timeout;
-	int i;
 	int ret = 0;
 
 	mutex_lock(&priv->access_lock);
 
-	if (priv->interval == STTS751_INTERVAL_MANUAL) {
-		/* perform a one-shot on-demand conversion */
-		ret = stts751_manual_conversion(priv);
-		if (ret) {
-			dev_warn(&priv->client->dev,
-				"failed to shot conversion %x\n", ret);
-			goto exit;
-		}
+	/*
+	 * There is a trick here, like in the lm90 driver. We have to read two
+	 * registers to get the sensor temperature, but we have to beware a
+	 * conversion could occur between the readings. We could use the
+	 * one-shot conversion register, but we don't want to do this (disables
+	 * hardware monitoring). So the solution used here is to read the high
+	 * byte once, then the low byte, then the high byte again. If the new
+	 * high byte matches the old one, then we have a valid reading. Else we
+	 * have to read the low byte again, and now we believe we have a correct
+	 * reading.
+	 */
+	integer1 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
+	if (integer1 < 0) {
+		dev_dbg(&priv->client->dev, "failed to read H reg %x\n", ret);
+		ret = integer1;
+		goto exit;
 	}
 
-	for (i = 0; i < STTS751_RACE_RETRY; i++) {
-		sample1 = jiffies;
-		integer1 = i2c_smbus_read_byte_data(priv->client,
-						STTS751_REG_TEMP_H);
+	frac = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_L);
+	if (frac < 0) {
+		dev_dbg(&priv->client->dev, "failed to read L reg %x\n", ret);
+		ret = frac;
+		goto exit;
+	}
 
-		if (integer1 < 0) {
-			ret = integer1;
-			dev_warn(&priv->client->dev,
-				"failed to read H reg %x\n", ret);
-			goto exit;
-		}
+	integer2 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
+	if (integer2 < 0) {
+		dev_dbg(&priv->client->dev,
+			"failed to read H reg (2nd time) %x\n", ret);
+		ret = integer2;
+		goto exit;
+	}
 
-		frac = i2c_smbus_read_byte_data(priv->client,
-						STTS751_REG_TEMP_L);
-
+	if (integer1 != integer2) {
+		frac = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_L);
 		if (frac < 0) {
+			dev_dbg(&priv->client->dev, "failed to read L reg %x\n", ret);
 			ret = frac;
-			dev_warn(&priv->client->dev,
-				"failed to read L reg %x\n", ret);
 			goto exit;
 		}
-
-		if (priv->interval == STTS751_INTERVAL_MANUAL) {
-			/* we'll look at integer2 later.. */
-			integer2 = integer1;
-			break;
-		}
-
-		integer2 = i2c_smbus_read_byte_data(priv->client,
-						STTS751_REG_TEMP_H);
-		sample2 = jiffies;
-
-		if (integer2 < 0) {
-			dev_warn(&priv->client->dev,
-				"failed to read H reg (2nd time) %x\n", ret);
-			ret = integer2;
-			goto exit;
-		}
-
-		timeout = stts751_intervals[priv->interval].val * HZ / 1000;
-		timeout -= ((timeout < 10) && (timeout > 1)) ? 1 : timeout / 10;
-		if ((integer1 == integer2) &&
-			time_after(sample1 + timeout, sample2))
-			break;
-
-		/* if we are going on with a racy read, don't pretend to be
-		 * super-precise, just use the MSBs ..
-		 */
-		frac = 0;
 	}
 
 exit:
@@ -317,9 +247,6 @@ exit:
 	if (ret)
 		return ret;
 
-	/* use integer2, because when we fallback to the "MSB-only" compromise
-	 * this is the more recent one
-	 */
 	priv->temp = stts751_to_deg(integer2, frac);
 	return ret;
 }
@@ -460,9 +387,7 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 	 * a new measure in no more than 1/4 of the sample time (that seemed
 	 * reasonable to me).
 	 */
-	if (priv->interval != STTS751_INTERVAL_MANUAL)
-		cache_time = stts751_intervals[priv->interval].val /
-			4 * HZ / 1000;
+	cache_time = stts751_intervals[priv->interval].val / 4 * HZ / 1000;
 
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
 		!priv->data_valid) {
@@ -696,27 +621,20 @@ static int stts751_detect(struct i2c_client *new_client,
 static int stts751_init_chip(struct stts751_priv *priv)
 {
 	int ret;
-	u8 tmp;
-
+// TBD check we did at least 1 conversion before allowing read
 	priv->config = STTS751_CONF_EVENT_DIS | STTS751_CONF_STOP;
 	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_CONF,
 					priv->config);
 	if (ret)
 		return ret;
 
-	/* We always need to write a value consistent wrt to the resolution,
-	 * otherwise the sensor does not work.
-	 * If we are in manual mode, we use any value for which all resolutions
-	 * are admitted. 4 is fine.
-	 */
-	tmp = (priv->interval == STTS751_INTERVAL_MANUAL) ? 4 : priv->interval;
-	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE, tmp);
+	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE,
+					priv->interval);
 	if (ret)
 		return ret;
 
 	/* invalid, to force update */
 	priv->res = -1;
-
 	ret = stts751_adjust_resolution(priv);
 	if (ret)
 		return ret;
@@ -727,44 +645,36 @@ static int stts751_init_chip(struct stts751_priv *priv)
 	if (ret)
 		return ret;
 
-	if (priv->interval != STTS751_INTERVAL_MANUAL) {
-		/* user input will not wait for status bit, and we just
-		 * provide the last read value. Make sure we really have one
-		 * before claiming we are ready..
-		 */
-		ret = stts751_manual_conversion(priv);
+
+	if (priv->gen_event) {
+		ret = stts751_set_temp_reg(priv, priv->event_max, true,
+					STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 		if (ret)
 			return ret;
 
-		if (priv->gen_event) {
-			ret = stts751_set_temp_reg(priv, priv->event_max, true,
-					STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
-			if (ret)
-				return ret;
-
-			ret = stts751_set_temp_reg(priv, priv->event_min, true,
+		ret = stts751_set_temp_reg(priv, priv->event_min, true,
 					STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
-			if (ret)
-				return ret;
-			priv->config &= ~STTS751_CONF_EVENT_DIS;
-		}
-
-		if (priv->gen_therm) {
-			ret = stts751_set_temp_reg(priv, priv->therm, false,
-						STTS751_REG_TLIM, 0);
-			if (ret)
-				return ret;
-
-			ret = stts751_set_temp_reg(priv, priv->hyst, false,
-						STTS751_REG_HYST, 0);
-			if (ret)
-				return ret;
-		}
-
-		priv->config &= ~STTS751_CONF_STOP;
-		ret = i2c_smbus_write_byte_data(priv->client,
-						STTS751_REG_CONF, priv->config);
+		if (ret)
+			return ret;
+		priv->config &= ~STTS751_CONF_EVENT_DIS;
 	}
+
+	if (priv->gen_therm) {
+		ret = stts751_set_temp_reg(priv, priv->therm, false,
+					STTS751_REG_TLIM, 0);
+		if (ret)
+			return ret;
+
+		ret = stts751_set_temp_reg(priv, priv->hyst, false,
+					STTS751_REG_HYST, 0);
+		if (ret)
+			return ret;
+	}
+
+	priv->config &= ~STTS751_CONF_STOP;
+	ret = i2c_smbus_write_byte_data(priv->client,
+					STTS751_REG_CONF, priv->config);
+
 	return ret;
 }
 
@@ -874,11 +784,7 @@ static int stts751_probe(struct i2c_client *client,
 		priv->gen_therm ? "YES" : "NO");
 
 	priv->groups[groups_idx++] = &stts751_temp_group;
-
-	if (priv->gen_therm || priv->gen_event)
-		priv->groups[groups_idx++] = &stts751_interval_group;
-	else
-		priv->interval = STTS751_INTERVAL_MANUAL;
+	priv->groups[groups_idx++] = &stts751_interval_group;
 
 	if (priv->gen_therm)
 		priv->groups[groups_idx++] = &stts751_therm_group;
