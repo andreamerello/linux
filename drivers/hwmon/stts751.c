@@ -744,7 +744,7 @@ static int stts751_probe(struct i2c_client *client,
 	struct stts751_priv *priv;
 	int ret;
 	int groups_idx = 0;
-	struct device_node *of_node = client->dev.of_node;
+	struct device_node *np = client->dev.of_node;
 
 	priv = devm_kzalloc(&client->dev,
 			sizeof(struct stts751_priv), GFP_KERNEL);
@@ -770,10 +770,10 @@ static int stts751_probe(struct i2c_client *client,
 	priv->event_max = STTS751_EVENT_MAX_DEFAULT;
 	priv->event_min = STTS751_EVENT_MIN_DEFAULT;
 
-	if (of_node) {
-		priv->gen_therm = of_property_read_bool(of_node, "has-therm");
-		priv->gen_event = of_property_read_bool(of_node, "has-event");
-		priv->smbus_timeout = !of_property_read_bool(of_node,
+	if (np) {
+		priv->gen_therm = of_property_read_bool(np, "has-therm");
+		priv->gen_event = of_property_read_bool(np, "has-event");
+		priv->smbus_timeout = !of_property_read_bool(np,
 						"smbus-timeout-disable");
 	} else {
 		dev_notice(&client->dev, "No DT data. Event/therm disabled\n");
