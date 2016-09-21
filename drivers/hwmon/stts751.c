@@ -166,51 +166,24 @@ struct stts751_priv {
 	bool min_alert, max_alert;
 	bool data_valid;
 
-	/* Temperature is always present
-	 * Depending by DT/platdata, therm, event, interval are
-	 * dynamically added.
+	/*
+	 * Temperature/interval is always present.
+	 * Depending by DT therm and event are dynamically added.
 	 * There are max 4 entries plus the guard
 	 */
 	const struct attribute_group *groups[5];
 };
 
-static int stts751_manual_conversion(struct stts751_priv *priv)
-{
-	s32 ret;
-	unsigned long timeout;
-
-	/* Any value written to this reg will trigger manual conversion */
-	ret = i2c_smbus_write_byte_data(priv->client,
-				STTS751_REG_ONESHOT, 0xFF);
-	if (ret < 0)
-		return ret;
-
-	timeout = jiffies;
-
-	while (1) {
-		ret = i2c_smbus_read_byte_data(priv->client,
-					STTS751_REG_STATUS);
-		if (ret < 0)
-			return ret;
-		if (!(ret & STTS751_STATUS_BUSY))
-			return 0;
-		if (time_after(jiffies,
-				timeout + STTS751_CONV_TIMEOUT * HZ / 1000)) {
-			dev_warn(&priv->client->dev, "conversion timed out\n");
-			break;
-		}
-	}
-	return -ETIMEDOUT;
-}
-
-/* Converts temperature in C split in integer and fractional parts, as supplied
+/*
+ * Converts temperature in C split in integer and fractional parts, as supplied
  * by the HW, to an integer number in mC
  */
 static int stts751_to_deg(s32 integer, s32 frac)
 {
 	s32 temp;
 
-	/* frac part is supplied by the HW as a numbert whose bits weight, from
+	/*
+	 * frac part is supplied by the HW as a numbert whose bits weight, from
 	 * MSB to LSB, are 2-e1, 2e-2 .. 2e-8; while stored as a regular integer
 	 * it would be interpreted as usual (2e+128, 2e+64 ...), so we basically
 	 * need to divide it by 256 to ajust the bits' weight.
@@ -223,7 +196,8 @@ static int stts751_to_deg(s32 integer, s32 frac)
 	return temp;
 }
 
-/* Converts temperature in mC to value in C split in integer and fractional
+/*
+ * Converts temperature in mC to value in C split in integer and fractional
  * parts, as the HW wants.
  */
 static int stts751_to_hw(int val, u8 *integer, u8 *frac)
@@ -481,9 +455,10 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 	int cache_time = STTS751_CACHE_TIME * HZ / 1000;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	/* If we are in auto conversion mode adjust the cache time wrt the
-	 * sample rate. We do 4X in order to get a new measure in no more than
-	 * 1/4 of the sample time (that seemed reasonable to me).
+	/*
+	 * Adjust the cache time wrt the sample rate. We do 4X in order to get
+	 * a new measure in no more than 1/4 of the sample time (that seemed
+	 * reasonable to me).
 	 */
 	if (priv->interval != STTS751_INTERVAL_MANUAL)
 		cache_time = stts751_intervals[priv->interval].val /
