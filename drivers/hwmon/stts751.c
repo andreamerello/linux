@@ -34,6 +34,7 @@
 #include <linux/of_irq.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
+#include <linux/util_macros.h>
 
 #define DEVNAME "stts751"
 
@@ -81,23 +82,14 @@ static const unsigned short normal_i2c[] = {
 #define STTS751_CONV_TIMEOUT	100 /* mS */
 #define STTS751_CACHE_TIME	100 /* mS */
 
-struct stts751_intervals_t {
-	char str[8];
-	int val;
-};
-
-/* HW index vs ASCII and int times in mS */
-static const struct stts751_intervals_t stts751_intervals[] = {
-	{.str = "16000", .val = 16000},
-	{.str = "8000", .val = 8000},
-	{.str = "4000", .val = 4000},
-	{.str = "2000", .val = 2000},
-	{.str = "1000", .val = 1000},
-	{.str = "500", .val = 500},
-	{.str = "250", .val = 250},
-	{.str = "125", .val = 125},
-	{.str = "62.5", .val = 62},
-	{.str = "31.25", .val = 31}
+/*
+ * Possible update intervals are (in mS):
+ * 16000, 8000, 4000, 2000, 1000, 500, 250, 125, 62.5, 31.25
+ * However we are not going to complicate things too much and we stick to the
+ * approx value in mS.
+ */
+static const int stts751_intervals[] = {
+	16000, 8000, 4000, 2000, 1000, 500, 250, 125, 63, 31
 };
 
 struct stts751_priv {
@@ -375,7 +367,7 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 	 * a new measure in no more than 1/4 of the sample time (that seemed
 	 * reasonable to me).
 	 */
-	cache_time = stts751_intervals[priv->interval].val / 4 * HZ / 1000;
+	cache_time = stts751_intervals[priv->interval] / 4 * HZ / 1000;
 
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
 		!priv->data_valid) {
@@ -509,52 +501,47 @@ static ssize_t show_interval(struct device *dev, struct device_attribute *attr,
 			     char *buf)
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
-
-	return snprintf(buf, PAGE_SIZE - 1, "%s\n",
-			stts751_intervals[priv->interval].str);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n",
+			stts751_intervals[priv->interval]);
 }
 
 static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 			    const char *buf, size_t count)
 {
 	unsigned long val;
-	int i;
+	int idx;
 	int ret = 0;
-	const int len = sizeof(stts751_intervals) /
-		sizeof(stts751_intervals[0]) - 1;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	if (kstrtoul(buf, 10, &val) < 0)
 		return -EINVAL;
 
-	for (i = 0; i < len; i++) {
-		if (val >= stts751_intervals[i].val)
-			break;
-	}
+	idx = find_closest_descending(val, stts751_intervals,
+				ARRAY_SIZE(stts751_intervals));
 
-	dev_dbg(dev, "setting interval. req:%lu, idx: %d, val: %d", val, i,
-		stts751_intervals[i].val);
+	dev_dbg(dev, "setting interval. req:%lu, idx: %d, val: %d", val, idx,
+		stts751_intervals[idx]);
 
-	if (priv->interval == i)
+	if (priv->interval == idx)
 		return count;
 
 	mutex_lock(&priv->access_lock);
 
 	/* speed up, lower the resolution, then modify convrate */
-	if (priv->interval < i) {
-		priv->interval = i;
+	if (priv->interval < idx) {
+		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
 			goto exit;
 	}
 
-	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE, i);
+	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE, idx);
 	if (ret)
 		goto exit;
 
 	/* slow down, modify convrate, then raise resolution */
-	if (priv->interval != i) {
-		priv->interval = i;
+	if (priv->interval != idx) {
+		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
 			goto exit;
