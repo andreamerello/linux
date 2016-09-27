@@ -596,7 +596,7 @@ static int stts751_detect(struct i2c_client *new_client,
 static int stts751_init_chip(struct stts751_priv *priv)
 {
 	int ret;
-// TBD check we did at least 1 conversion before allowing read
+
 	priv->config = STTS751_CONF_EVENT_DIS | STTS751_CONF_STOP;
 	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_CONF,
 					priv->config);
