@@ -568,7 +568,8 @@ static int stts751_detect(struct i2c_client *new_client,
 	dev_dbg(&new_client->dev, "Chip %s detected!", name);
 
 	rev_id = i2c_smbus_read_byte_data(new_client, STTS751_REG_REV_ID);
-
+	if (rev_id < 0)
+		return -ENODEV;
 	if (rev_id != 0x1) {
 		dev_notice(&new_client->dev,
 			"Chip revision 0x%x is untested\nPlease report whether it works to andrea.merello@gmail.com",
