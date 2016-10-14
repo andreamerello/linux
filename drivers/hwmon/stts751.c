@@ -731,12 +731,6 @@ static int stts751_probe(struct i2c_client *client,
 	priv->interval = 5;
 	/* default to timeout enable, as per chip default */
 	priv->smbus_timeout = true;
-	priv->last_update = 0;
-	priv->data_valid = false;
-	priv->max_alert = false;
-	priv->min_alert = false;
-	priv->gen_therm = false;
-	priv->gen_event = false;
 	priv->therm = STTS751_THERM_DEFAULT;
 	priv->hyst = STTS751_HYST_DEFAULT;
 	priv->event_max = STTS751_EVENT_MAX_DEFAULT;
@@ -763,8 +757,6 @@ static int stts751_probe(struct i2c_client *client,
 
 	if (priv->gen_event)
 		priv->groups[groups_idx++] = &stts751_event_group;
-
-	priv->groups[groups_idx] = NULL;
 
 	ret = stts751_init_chip(priv);
 	if (ret)
