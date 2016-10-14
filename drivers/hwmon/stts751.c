@@ -119,9 +119,8 @@ static int stts751_to_deg(s32 hw_val)
 
 static s16 stts751_to_hw(int val, s32 *hw_val)
 {
-	/* HW works in range -64C to +127C */
-	if ((val > 127000) || (val < -64000))
-		return -EINVAL;
+	/* HW works in range -64C to +127.937C */
+	clamp_val(val, -64000, 127937);
 
 	if (val < 0)
 		*hw_val = (val - 62) / 125 * 32;
