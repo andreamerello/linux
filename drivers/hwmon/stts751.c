@@ -97,7 +97,6 @@ struct stts751_priv {
 	struct mutex access_lock;
 	unsigned long interval;
 	int res;
-	bool gen_therm, gen_event;
 	int event_max, event_min;
 	int therm;
 	int hyst;
@@ -107,13 +106,6 @@ struct stts751_priv {
 	u8 config;
 	bool min_alert, max_alert;
 	bool data_valid;
-
-	/*
-	 * Temperature/interval is always present.
-	 * Depending by DT therm and event are dynamically added.
-	 * There are max 4 entries plus the guard
-	 */
-	const struct attribute_group *groups[5];
 };
 
 /*
@@ -255,10 +247,6 @@ exit:
 static int stts751_update_alert(struct stts751_priv *priv)
 {
 	int ret;
-
-	/* not for us.. */
-	if (!priv->gen_event)
-		return 0;
 
 	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
 	if (ret < 0)
@@ -595,7 +583,7 @@ static int stts751_init_chip(struct stts751_priv *priv)
 {
 	int ret;
 
-	priv->config = STTS751_CONF_EVENT_DIS | STTS751_CONF_STOP;
+	priv->config = STTS751_CONF_STOP;
 	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_CONF,
 					priv->config);
 	if (ret)
@@ -618,31 +606,25 @@ static int stts751_init_chip(struct stts751_priv *priv)
 	if (ret)
 		return ret;
 
+	ret = stts751_set_temp_reg(priv, priv->event_max, true,
+				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
+	if (ret)
+		return ret;
 
-	if (priv->gen_event) {
-		ret = stts751_set_temp_reg(priv, priv->event_max, true,
-					STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
-		if (ret)
-			return ret;
+	ret = stts751_set_temp_reg(priv, priv->event_min, true,
+				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
+	if (ret)
+		return ret;
 
-		ret = stts751_set_temp_reg(priv, priv->event_min, true,
-					STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
-		if (ret)
-			return ret;
-		priv->config &= ~STTS751_CONF_EVENT_DIS;
-	}
+	ret = stts751_set_temp_reg(priv, priv->therm, false,
+				STTS751_REG_TLIM, 0);
+	if (ret)
+		return ret;
 
-	if (priv->gen_therm) {
-		ret = stts751_set_temp_reg(priv, priv->therm, false,
-					STTS751_REG_TLIM, 0);
-		if (ret)
-			return ret;
-
-		ret = stts751_set_temp_reg(priv, priv->hyst, false,
-					STTS751_REG_HYST, 0);
-		if (ret)
-			return ret;
-	}
+	ret = stts751_set_temp_reg(priv, priv->hyst, false,
+				STTS751_REG_HYST, 0);
+	if (ret)
+		return ret;
 
 	priv->config &= ~STTS751_CONF_STOP;
 	ret = i2c_smbus_write_byte_data(priv->client,
@@ -667,56 +649,24 @@ static SENSOR_DEVICE_ATTR(temp1_therm_hyst, S_IWUSR | S_IRUGO, show_hyst,
 static SENSOR_DEVICE_ATTR(update_interval, S_IWUSR | S_IRUGO,
 			show_interval, set_interval, 0);
 
-/* always present */
-static struct attribute *stts751_temp_attrs[] = {
+static struct attribute *stts751_attrs[] = {
 	&sensor_dev_attr_temp1_input.dev_attr.attr,
-	NULL
-};
-
-static struct attribute_group stts751_temp_group = {
-	.attrs = stts751_temp_attrs,
-};
-
-/* present when therm pin or event pin are connected */
-static struct attribute *stts751_interval_attrs[] = {
 	&sensor_dev_attr_update_interval.dev_attr.attr,
-	NULL
-};
-
-static struct attribute_group stts751_interval_group = {
-	.attrs = stts751_interval_attrs,
-};
-
-/* present when event pin is connected */
-static struct attribute *stts751_event_attrs[] = {
 	&sensor_dev_attr_temp1_event_min.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_max.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_min_alert.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_max_alert.dev_attr.attr,
-	NULL
-};
-
-static struct attribute_group stts751_event_group = {
-	.attrs = stts751_event_attrs,
-};
-
-/* present when therm pin is connected */
-static struct attribute *stts751_therm_attrs[] = {
 	&sensor_dev_attr_temp1_therm.dev_attr.attr,
 	&sensor_dev_attr_temp1_therm_hyst.dev_attr.attr,
 	NULL
 };
-
-static struct attribute_group stts751_therm_group = {
-	.attrs = stts751_therm_attrs,
-};
+ATTRIBUTE_GROUPS(stts751);
 
 static int stts751_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id)
 {
 	struct stts751_priv *priv;
 	int ret;
-	int groups_idx = 0;
 	struct device_node *np = client->dev.of_node;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
@@ -736,27 +686,9 @@ static int stts751_probe(struct i2c_client *client,
 	priv->event_max = STTS751_EVENT_MAX_DEFAULT;
 	priv->event_min = STTS751_EVENT_MIN_DEFAULT;
 
-	if (np) {
-		priv->gen_therm = of_property_read_bool(np, "has-therm");
-		priv->gen_event = of_property_read_bool(np, "has-event");
+	if (np)
 		priv->smbus_timeout = !of_property_read_bool(np,
 						"smbus-timeout-disable");
-	} else {
-		dev_notice(&client->dev, "No DT data. Event/therm disabled\n");
-	}
-
-	dev_dbg(&client->dev, "gen_event: %s, gen_therm: %s",
-		priv->gen_event ? "YES" : "NO",
-		priv->gen_therm ? "YES" : "NO");
-
-	priv->groups[groups_idx++] = &stts751_temp_group;
-	priv->groups[groups_idx++] = &stts751_interval_group;
-
-	if (priv->gen_therm)
-		priv->groups[groups_idx++] = &stts751_therm_group;
-
-	if (priv->gen_event)
-		priv->groups[groups_idx++] = &stts751_event_group;
 
 	ret = stts751_init_chip(priv);
 	if (ret)
@@ -764,7 +696,7 @@ static int stts751_probe(struct i2c_client *client,
 
 	priv->dev = devm_hwmon_device_register_with_groups(&client->dev,
 							client->name, priv,
-							priv->groups);
+							stts751_groups);
 	return PTR_ERR_OR_ZERO(priv->dev);
 }
 
