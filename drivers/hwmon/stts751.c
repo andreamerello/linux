@@ -20,7 +20,6 @@
  * GNU General Public License for more details.
  */
 
-
 #include <linux/bitops.h>
 #include <linux/err.h>
 #include <linux/hwmon.h>
@@ -245,7 +244,8 @@ static int stts751_set_temp_reg(struct stts751_priv *priv, int temp,
 	if (ret)
 		goto exit;
 	if (is_frac)
-		ret = i2c_smbus_write_byte_data(priv->client, lreg, hwval & 0xff);
+		ret = i2c_smbus_write_byte_data(priv->client, lreg,
+						hwval & 0xff);
 exit:
 	mutex_unlock(&priv->access_lock);
 
@@ -261,7 +261,6 @@ static int stts751_update_alert(struct stts751_priv *priv)
 		return 0;
 
 	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
-
 	if (ret < 0)
 		return ret;
 
@@ -475,7 +474,6 @@ static ssize_t show_min(struct device *dev, struct device_attribute *attr,
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->event_min);
 }
 
-
 static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 		       const char *buf, size_t count)
 {
@@ -501,6 +499,7 @@ static ssize_t show_interval(struct device *dev, struct device_attribute *attr,
 			     char *buf)
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
+
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n",
 			stts751_intervals[priv->interval]);
 }
@@ -545,7 +544,6 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
 			goto exit;
-
 	}
 exit:
 	mutex_unlock(&priv->access_lock);
