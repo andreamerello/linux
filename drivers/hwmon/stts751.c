@@ -71,12 +71,6 @@ static const unsigned short normal_i2c[] = {
 #define STTS751_1_PROD_ID	0x01
 #define ST_MAN_ID		0x53
 
-/* stick with HW defaults */
-#define STTS751_THERM_DEFAULT	85000
-#define STTS751_HYST_DEFAULT	10000
-#define STTS751_EVENT_MAX_DEFAULT 85000
-#define STTS751_EVENT_MIN_DEFAULT 0
-
 #define STTS751_RACE_RETRY	5
 #define STTS751_CONV_TIMEOUT	100 /* mS */
 #define STTS751_CACHE_TIME	100 /* mS */
@@ -95,7 +89,7 @@ struct stts751_priv {
 	struct device *dev;
 	struct i2c_client *client;
 	struct mutex access_lock;
-	unsigned long interval;
+	u8 interval;
 	int res;
 	int event_max, event_min;
 	int therm;
@@ -242,6 +236,37 @@ exit:
 	mutex_unlock(&priv->access_lock);
 
 	return ret;
+}
+
+static int stts751_read_reg16(struct stts751_priv *priv, int *temp,
+				u8 hreg, u8 lreg)
+{
+	int integer, frac;
+
+	integer = i2c_smbus_read_byte_data(priv->client, hreg);
+	if (integer < 0)
+		return integer;
+
+	frac = i2c_smbus_read_byte_data(priv->client, lreg);
+	if (frac < 0)
+		return frac;
+
+	*temp = stts751_to_deg((integer << 8) | frac);
+
+	return 0;
+}
+
+static int stts751_read_reg8(struct stts751_priv *priv, int *temp, u8 reg)
+{
+	int integer;
+
+	integer = i2c_smbus_read_byte_data(priv->client, reg);
+	if (integer < 0)
+		return integer;
+
+	*temp = stts751_to_deg(integer << 8);
+
+	return 0;
 }
 
 static int stts751_update_alert(struct stts751_priv *priv)
@@ -580,56 +605,38 @@ static int stts751_detect(struct i2c_client *new_client,
 	return 0;
 }
 
-static int stts751_init_chip(struct stts751_priv *priv)
+static int stts751_read_chip_config(struct stts751_priv *priv)
 {
 	int ret;
 
-	priv->config = STTS751_CONF_STOP;
-	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_CONF,
-					priv->config);
-	if (ret)
+	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_CONF);
+	if (ret < 0)
 		return ret;
+	priv->config = ret;
+	priv->res = (ret & STTS751_CONF_RES_MASK) >> STTS751_CONF_RES_SHIFT;
 
-	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE,
-					priv->interval);
-	if (ret)
+	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_RATE);
+	if (ret < 0)
 		return ret;
+	priv->interval = ret;
 
-	/* invalid, to force update */
-	priv->res = -1;
-	ret = stts751_adjust_resolution(priv);
-	if (ret)
-		return ret;
-
-	ret = i2c_smbus_write_byte_data(priv->client,
-					STTS751_REG_SMBUS_TO,
-					priv->smbus_timeout ? 0x80 : 0);
-	if (ret)
-		return ret;
-
-	ret = stts751_set_temp_reg(priv, priv->event_max, true,
+	ret = stts751_read_reg16(priv, &priv->event_max,
 				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
 		return ret;
 
-	ret = stts751_set_temp_reg(priv, priv->event_min, true,
+	ret = stts751_read_reg16(priv, &priv->event_min,
 				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
 		return ret;
 
-	ret = stts751_set_temp_reg(priv, priv->therm, false,
-				STTS751_REG_TLIM, 0);
+	ret = stts751_read_reg8(priv, &priv->therm, STTS751_REG_TLIM);
 	if (ret)
 		return ret;
 
-	ret = stts751_set_temp_reg(priv, priv->hyst, false,
-				STTS751_REG_HYST, 0);
+	ret = stts751_read_reg8(priv, &priv->hyst, STTS751_REG_HYST);
 	if (ret)
 		return ret;
-
-	priv->config &= ~STTS751_CONF_STOP;
-	ret = i2c_smbus_write_byte_data(priv->client,
-					STTS751_REG_CONF, priv->config);
 
 	return ret;
 }
@@ -669,6 +676,7 @@ static int stts751_probe(struct i2c_client *client,
 	struct stts751_priv *priv;
 	int ret;
 	struct device_node *np = client->dev.of_node;
+	bool smbus_timeout = true;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -678,20 +686,23 @@ static int stts751_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, priv);
 	mutex_init(&priv->access_lock);
 
-	/* default to 2 samples per second */
-	priv->interval = 5;
-	/* default to timeout enable, as per chip default */
-	priv->smbus_timeout = true;
-	priv->therm = STTS751_THERM_DEFAULT;
-	priv->hyst = STTS751_HYST_DEFAULT;
-	priv->event_max = STTS751_EVENT_MAX_DEFAULT;
-	priv->event_min = STTS751_EVENT_MIN_DEFAULT;
-
 	if (np)
-		priv->smbus_timeout = !of_property_read_bool(np,
+		smbus_timeout = !of_property_read_bool(np,
 						"smbus-timeout-disable");
 
-	ret = stts751_init_chip(priv);
+	ret = i2c_smbus_write_byte_data(priv->client,
+					STTS751_REG_SMBUS_TO,
+					smbus_timeout ? 0x80 : 0);
+	if (ret)
+		return ret;
+
+	ret = stts751_read_chip_config(priv);
+	if (ret)
+		return ret;
+
+	priv->config &= ~(STTS751_CONF_STOP | STTS751_CONF_EVENT_DIS);
+	ret = i2c_smbus_write_byte_data(priv->client,
+					STTS751_REG_CONF, priv->config);
 	if (ret)
 		return ret;
 
