@@ -217,8 +217,8 @@ exit:
 	return ret;
 }
 
-static int stts751_set_temp_reg(struct stts751_priv *priv, int temp,
-				bool is_frac, u8 hreg, u8 lreg)
+static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
+				u8 hreg, u8 lreg)
 {
 	s32 hwval;
 	int ret;
@@ -227,12 +227,22 @@ static int stts751_set_temp_reg(struct stts751_priv *priv, int temp,
 
 	mutex_lock(&priv->access_lock);
 	ret = i2c_smbus_write_byte_data(priv->client, hreg, hwval >> 8);
-	if (ret)
-		goto exit;
-	if (is_frac)
-		ret = i2c_smbus_write_byte_data(priv->client, lreg,
-						hwval & 0xff);
-exit:
+	if (!ret)
+		ret = i2c_smbus_write_byte_data(priv->client, lreg, hwval & 0xff);
+	mutex_unlock(&priv->access_lock);
+
+	return ret;
+}
+
+static int stts751_set_temp_reg8(struct stts751_priv *priv, int temp, u8 reg)
+{
+	s32 hwval;
+	int ret;
+
+	hwval = stts751_to_hw(temp);
+
+	mutex_lock(&priv->access_lock);
+	ret = i2c_smbus_write_byte_data(priv->client, reg, hwval >> 8);
 	mutex_unlock(&priv->access_lock);
 
 	return ret;
@@ -412,7 +422,7 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
 
-	ret = stts751_set_temp_reg(priv, temp, false, STTS751_REG_TLIM, 0);
+	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_TLIM);
 	if (ret)
 		return ret;
 
@@ -441,7 +451,7 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
 
-	ret = stts751_set_temp_reg(priv, temp, false, STTS751_REG_HYST, 0);
+	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
 	if (ret)
 		return ret;
 
@@ -469,7 +479,7 @@ static ssize_t set_max(struct device *dev, struct device_attribute *attr,
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
 
-	ret = stts751_set_temp_reg(priv, temp, true,
+	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
 		return ret;
@@ -497,7 +507,7 @@ static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
 
-	ret = stts751_set_temp_reg(priv, temp, true,
+	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
 		return ret;
