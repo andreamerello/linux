@@ -685,7 +685,7 @@ static int stts751_probe(struct i2c_client *client,
 {
 	struct stts751_priv *priv;
 	int ret;
-	bool smbus_timeout = true;
+	bool smbus_to;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -695,14 +695,17 @@ static int stts751_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, priv);
 	mutex_init(&priv->access_lock);
 
-	smbus_timeout = !device_property_read_bool(&client->dev,
+	if (device_property_present(&client->dev,
+					"smbus-timeout-disable")) {
+		smbus_to = !device_property_read_bool(&client->dev,
 						"smbus-timeout-disable");
 
-	ret = i2c_smbus_write_byte_data(priv->client,
-					STTS751_REG_SMBUS_TO,
-					smbus_timeout ? 0x80 : 0);
-	if (ret)
-		return ret;
+		ret = i2c_smbus_write_byte_data(priv->client,
+						STTS751_REG_SMBUS_TO,
+						smbus_to ? 0x80 : 0);
+		if (ret)
+			return ret;
+	}
 
 	ret = stts751_read_chip_config(priv);
 	if (ret)
