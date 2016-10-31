@@ -342,19 +342,11 @@ static ssize_t show_max_alert(struct device *dev, struct device_attribute *attr,
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->max_alert);
-}
-
-static ssize_t set_max_alert(struct device *dev, struct device_attribute *attr,
-		       const char *buf, size_t count)
-{
-	struct stts751_priv *priv = dev_get_drvdata(dev);
-
 	mutex_lock(&priv->access_lock);
 	priv->max_alert = false;
 	mutex_unlock(&priv->access_lock);
 
-	return count;
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->max_alert);
 }
 
 static ssize_t show_min_alert(struct device *dev, struct device_attribute *attr,
@@ -362,19 +354,11 @@ static ssize_t show_min_alert(struct device *dev, struct device_attribute *attr,
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->min_alert);
-}
-
-static ssize_t set_min_alert(struct device *dev, struct device_attribute *attr,
-		       const char *buf, size_t count)
-{
-	struct stts751_priv *priv = dev_get_drvdata(dev);
-
 	mutex_lock(&priv->access_lock);
 	priv->min_alert = false;
 	mutex_unlock(&priv->access_lock);
 
-	return count;
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->min_alert);
 }
 
 static ssize_t show_input(struct device *dev, struct device_attribute *attr,
@@ -663,10 +647,10 @@ static SENSOR_DEVICE_ATTR(temp1_event_min, S_IWUSR | S_IRUGO,
 			show_min, set_min, 0);
 static SENSOR_DEVICE_ATTR(temp1_event_max, S_IWUSR | S_IRUGO,
 			show_max, set_max, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_min_alert, S_IWUSR | S_IRUGO,
-			show_min_alert, set_min_alert, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_max_alert, S_IWUSR | S_IRUGO,
-			show_max_alert, set_max_alert, 0);
+static SENSOR_DEVICE_ATTR(temp1_event_min_alert, S_IRUGO,
+			show_min_alert, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_event_max_alert, S_IRUGO,
+			show_max_alert, NULL, 0);
 static SENSOR_DEVICE_ATTR(temp1_therm, S_IWUSR | S_IRUGO, show_therm,
 			set_therm, 0);
 static SENSOR_DEVICE_ATTR(temp1_therm_hyst, S_IWUSR | S_IRUGO, show_hyst,
