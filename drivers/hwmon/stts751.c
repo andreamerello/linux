@@ -340,25 +340,35 @@ static void stts751_alert(struct i2c_client *client,
 static ssize_t show_max_alert(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
+	int ret, max_alert;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	mutex_lock(&priv->access_lock);
 	priv->max_alert = false;
+	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
 	mutex_unlock(&priv->access_lock);
+	if (ret < 0)
+		return ret;
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->max_alert);
+	max_alert = !!(ret & STTS751_STATUS_TRIPH);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", max_alert);
 }
 
 static ssize_t show_min_alert(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
+	int ret, min_alert;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	mutex_lock(&priv->access_lock);
 	priv->min_alert = false;
+	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
 	mutex_unlock(&priv->access_lock);
+	if (ret < 0)
+		return ret;
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->min_alert);
+	min_alert = !!(ret & STTS751_STATUS_TRIPL);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", min_alert);
 }
 
 static ssize_t show_input(struct device *dev, struct device_attribute *attr,
