@@ -568,7 +568,6 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 	ret = i2c_smbus_write_byte_data(priv->client, STTS751_REG_RATE, idx);
 	if (ret)
 		goto exit;
-
 	/* slow down: modify convrate, then raise resolution */
 	if (priv->interval != idx) {
 		priv->interval = idx;
