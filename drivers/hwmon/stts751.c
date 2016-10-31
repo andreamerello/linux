@@ -431,7 +431,7 @@ static ssize_t show_hyst(struct device *dev, struct device_attribute *attr,
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->hyst);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->therm - priv->hyst);
 }
 
 
@@ -440,11 +440,14 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 {
 	int ret;
 	long temp;
+
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
-
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, -64000, priv->therm);
+	temp = priv->therm - temp;
 	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
 	if (ret)
 		return ret;
