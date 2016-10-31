@@ -30,7 +30,7 @@
 #include <linux/jiffies.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <linux/of_irq.h>
+#include <linux/property.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/util_macros.h>
@@ -685,7 +685,6 @@ static int stts751_probe(struct i2c_client *client,
 {
 	struct stts751_priv *priv;
 	int ret;
-	struct device_node *np = client->dev.of_node;
 	bool smbus_timeout = true;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
@@ -696,8 +695,7 @@ static int stts751_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, priv);
 	mutex_init(&priv->access_lock);
 
-	if (np)
-		smbus_timeout = !of_property_read_bool(np,
+	smbus_timeout = !device_property_read_bool(&client->dev,
 						"smbus-timeout-disable");
 
 	ret = i2c_smbus_write_byte_data(priv->client,
