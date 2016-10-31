@@ -115,9 +115,6 @@ static s32 stts751_to_hw(int val)
 {
 	s32 hw_val;
 
-	/* HW works in range -64C to +127.937C */
-	clamp_val(val, -64000, 127937);
-
 	if (val < 0)
 		hw_val = (val - 62) / 125 * 32;
 	else
@@ -415,7 +412,8 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
-
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, -64000, 127937);
 	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_TLIM);
 	if (ret)
 		return ret;
@@ -475,7 +473,8 @@ static ssize_t set_max(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
-
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, priv->event_min, 127937);
 	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
@@ -503,7 +502,8 @@ static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
-
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, -64000, priv->event_max);
 	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
