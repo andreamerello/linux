@@ -549,7 +549,15 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 
 	mutex_lock(&priv->access_lock);
 
-	/* speed up, lower the resolution, then modify convrate */
+	/*
+	 * In early development stages I've become suspicious about the chip
+	 * starting to misbehave if I ever set, even briefly, an invalid
+	 * configuration. While I'm not sure this is really needed, be
+	 * conservative and set rate/resolution in such an order that avoids
+	 * passing through an invalid configuration.
+	 */
+
+	/* speed up: lower the resolution, then modify convrate */
 	if (priv->interval < idx) {
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
@@ -561,7 +569,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 	if (ret)
 		goto exit;
 
-	/* slow down, modify convrate, then raise resolution */
+	/* slow down: modify convrate, then raise resolution */
 	if (priv->interval != idx) {
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
