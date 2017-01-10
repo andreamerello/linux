@@ -47,7 +47,6 @@ static const unsigned short normal_i2c[] = {
 #define STTS751_STATUS_TRIPT	BIT(0)
 #define STTS751_STATUS_TRIPL	BIT(5)
 #define STTS751_STATUS_TRIPH	BIT(6)
-#define STTS751_STATUS_BUSY	BIT(8)
 #define STTS751_REG_TEMP_L	0x02
 #define STTS751_REG_CONF	0x03
 #define STTS751_CONF_RES_MASK	0x0C
@@ -59,7 +58,6 @@ static const unsigned short normal_i2c[] = {
 #define STTS751_REG_HLIM_L	0x06
 #define STTS751_REG_LLIM_H	0x07
 #define STTS751_REG_LLIM_L	0x08
-#define STTS751_REG_ONESHOT	0x0F
 #define STTS751_REG_TLIM	0x20
 #define STTS751_REG_HYST	0x21
 #define STTS751_REG_SMBUS_TO	0x22
@@ -71,10 +69,6 @@ static const unsigned short normal_i2c[] = {
 #define STTS751_0_PROD_ID	0x00
 #define STTS751_1_PROD_ID	0x01
 #define ST_MAN_ID		0x53
-
-#define STTS751_RACE_RETRY	5
-#define STTS751_CONV_TIMEOUT	100 /* mS */
-#define STTS751_CACHE_TIME	100 /* mS */
 
 /*
  * Possible update intervals are (in mS):
