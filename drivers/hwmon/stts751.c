@@ -1,7 +1,7 @@
 /*
  * STTS751 sensor driver
  *
- * Copyright (C) 2016 Istituto Italiano di Tecnologia - RBCS - EDL
+ * Copyright (C) 2016-2017 Istituto Italiano di Tecnologia - RBCS - EDL
  * Robotics, Brain and Cognitive Sciences department
  * Electronic Design Laboratory
  *
