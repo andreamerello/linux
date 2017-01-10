@@ -101,7 +101,7 @@ struct stts751_priv {
 	int hyst;
 	bool smbus_timeout;
 	int temp;
-	unsigned long last_update;
+	unsigned long last_update, last_alert_update;
 	u8 config;
 	bool min_alert, max_alert;
 	bool data_valid;
@@ -284,13 +284,21 @@ static int stts751_read_reg8(struct stts751_priv *priv, int *temp, u8 reg)
 static int stts751_update_alert(struct stts751_priv *priv)
 {
 	int ret;
+	const int cache_time =
+		DIV_ROUND_UP(stts751_intervals[priv->interval] * HZ, 1000);
 
 	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
 	if (ret < 0)
 		return ret;
 
-	priv->max_alert = priv->max_alert || !!(ret & STTS751_STATUS_TRIPH);
-	priv->min_alert = priv->min_alert || !!(ret & STTS751_STATUS_TRIPL);
+	if (time_after(jiffies,	priv->last_alert_update + cache_time)) {
+		priv->max_alert = 0;
+		priv->min_alert = 0;
+		priv->last_alert_update = jiffies;
+	}
+
+	priv->max_alert |= !!(ret & STTS751_STATUS_TRIPH);
+	priv->min_alert |= !!(ret & STTS751_STATUS_TRIPL);
 
 	return 0;
 }
@@ -300,8 +308,6 @@ static void stts751_alert(struct i2c_client *client,
 {
 	int ret;
 	struct stts751_priv *priv = i2c_get_clientdata(client);
-	bool prev_max = priv->max_alert;
-	bool prev_min = priv->min_alert;
 
 	if (type != I2C_PROTOCOL_SMBUS_ALERT)
 		return;
@@ -315,13 +321,11 @@ static void stts751_alert(struct i2c_client *client,
 		priv->max_alert = true;
 		priv->min_alert = true;
 
-		if (!(prev_max && prev_min)) {
-			dev_warn(&priv->client->dev,
-				"Alert received, but can't communicate to the device. Something bad happening? Triggering all alarms!");
-		}
+		dev_warn(&priv->client->dev,
+			"Alert received, but can't communicate to the device. Something bad happening? Triggering all alarms!");
 	}
 
-	if (!prev_max && priv->max_alert) {
+	if (priv->max_alert) {
 		dev_notice(&client->dev, "got alert for HIGH temperature");
 
 		/* unblock alert poll */
@@ -329,7 +333,7 @@ static void stts751_alert(struct i2c_client *client,
 		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
 	}
 
-	if (!prev_min && priv->min_alert) {
+	if (priv->min_alert) {
 		dev_notice(&client->dev, "got alert for LOW temperature");
 
 		/* unblock alert poll */
@@ -342,35 +346,31 @@ static void stts751_alert(struct i2c_client *client,
 static ssize_t show_max_alert(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
-	int ret, max_alert;
+	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	mutex_lock(&priv->access_lock);
-	priv->max_alert = false;
-	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
+	ret = stts751_update_alert(priv);
 	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
-	max_alert = !!(ret & STTS751_STATUS_TRIPH);
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", max_alert);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->max_alert);
 }
 
 static ssize_t show_min_alert(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
-	int ret, min_alert;
+	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	mutex_lock(&priv->access_lock);
-	priv->min_alert = false;
-	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
+	ret = stts751_update_alert(priv);
 	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
-	min_alert = !!(ret & STTS751_STATUS_TRIPL);
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", min_alert);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->min_alert);
 }
 
 static ssize_t show_input(struct device *dev, struct device_attribute *attr,
