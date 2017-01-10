@@ -44,6 +44,7 @@ static const unsigned short normal_i2c[] = {
 
 #define STTS751_REG_TEMP_H	0x00
 #define STTS751_REG_STATUS	0x01
+#define STTS751_STATUS_TRIPT	BIT(0)
 #define STTS751_STATUS_TRIPL	BIT(5)
 #define STTS751_STATUS_TRIPH	BIT(6)
 #define STTS751_STATUS_BUSY	BIT(8)
@@ -103,7 +104,7 @@ struct stts751_priv {
 	int temp;
 	unsigned long last_update, last_alert_update;
 	u8 config;
-	bool min_alert, max_alert;
+	bool min_alert, max_alert, therm_trip;
 	bool data_valid;
 };
 
@@ -294,12 +295,13 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	if (time_after(jiffies,	priv->last_alert_update + cache_time)) {
 		priv->max_alert = 0;
 		priv->min_alert = 0;
+		priv->therm_trip = false;
 		priv->last_alert_update = jiffies;
 	}
 
 	priv->max_alert |= !!(ret & STTS751_STATUS_TRIPH);
 	priv->min_alert |= !!(ret & STTS751_STATUS_TRIPL);
-
+	priv->therm_trip |= !!(ret & STTS751_STATUS_TRIPT);
 	return 0;
 }
 
