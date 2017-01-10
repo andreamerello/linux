@@ -287,8 +287,8 @@ static int stts751_update_alert(struct stts751_priv *priv)
 		return ret;
 
 	if (time_after(jiffies,	priv->last_alert_update + cache_time)) {
-		priv->max_alert = 0;
-		priv->min_alert = 0;
+		priv->max_alert = false;
+		priv->min_alert = false;
 		priv->therm_trip = false;
 		priv->last_alert_update = jiffies;
 	}
