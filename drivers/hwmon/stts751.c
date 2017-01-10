@@ -85,6 +85,11 @@ static const int stts751_intervals[] = {
 	16000, 8000, 4000, 2000, 1000, 500, 250, 125, 63, 31
 };
 
+static const struct i2c_device_id stts751_id[] = {
+	{ "stts751", 0 },
+	{ }
+};
+
 struct stts751_priv {
 	struct device *dev;
 	struct i2c_client *client;
@@ -613,7 +618,7 @@ static int stts751_detect(struct i2c_client *new_client,
 			rev_id);
 	}
 
-	strlcpy(info->type, name, I2C_NAME_SIZE);
+	strlcpy(info->type, stts751_id[0].name, I2C_NAME_SIZE);
 	return 0;
 }
 
@@ -725,10 +730,6 @@ static int stts751_probe(struct i2c_client *client,
 	return PTR_ERR_OR_ZERO(priv->dev);
 }
 
-static const struct i2c_device_id stts751_id[] = {
-	{ "stts751", 0 },
-	{ }
-};
 MODULE_DEVICE_TABLE(i2c, stts751_id);
 
 static struct i2c_driver stts751_driver = {
