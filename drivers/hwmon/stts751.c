@@ -99,7 +99,7 @@ struct stts751_priv {
 	unsigned long last_update, last_alert_update;
 	u8 config;
 	bool min_alert, max_alert, therm_trip;
-	bool data_valid;
+	bool data_valid, alert_valid;
 };
 
 /*
@@ -286,10 +286,12 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	if (ret < 0)
 		return ret;
 
-	if (time_after(jiffies,	priv->last_alert_update + cache_time)) {
+	if (time_after(jiffies,	priv->last_alert_update + cache_time) ||
+		!priv->alert_valid) {
 		priv->max_alert = false;
 		priv->min_alert = false;
 		priv->therm_trip = false;
+		priv->alert_valid = true;
 		priv->last_alert_update = jiffies;
 	}
 
