@@ -456,6 +456,21 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 	return count;
 }
 
+static ssize_t show_therm_trip(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	int ret;
+	struct stts751_priv *priv = dev_get_drvdata(dev);
+
+	mutex_lock(&priv->access_lock);
+	ret = stts751_update_alert(priv);
+	mutex_unlock(&priv->access_lock);
+	if (ret < 0)
+		return ret;
+
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->therm_trip);
+}
+
 static ssize_t show_max(struct device *dev, struct device_attribute *attr,
 			char *buf)
 {
@@ -668,18 +683,21 @@ static SENSOR_DEVICE_ATTR(temp1_therm, S_IWUSR | S_IRUGO, show_therm,
 			set_therm, 0);
 static SENSOR_DEVICE_ATTR(temp1_therm_hyst, S_IWUSR | S_IRUGO, show_hyst,
 			set_hyst, 0);
+static SENSOR_DEVICE_ATTR(temp1_therm_trip, S_IRUGO,
+			show_therm_trip, NULL, 0);
 static SENSOR_DEVICE_ATTR(update_interval, S_IWUSR | S_IRUGO,
 			show_interval, set_interval, 0);
 
 static struct attribute *stts751_attrs[] = {
 	&sensor_dev_attr_temp1_input.dev_attr.attr,
-	&sensor_dev_attr_update_interval.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_min.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_max.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_min_alert.dev_attr.attr,
 	&sensor_dev_attr_temp1_event_max_alert.dev_attr.attr,
 	&sensor_dev_attr_temp1_therm.dev_attr.attr,
 	&sensor_dev_attr_temp1_therm_hyst.dev_attr.attr,
+	&sensor_dev_attr_temp1_therm_trip.dev_attr.attr,
+	&sensor_dev_attr_update_interval.dev_attr.attr,
 	NULL
 };
 ATTRIBUTE_GROUPS(stts751);
