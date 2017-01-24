@@ -157,8 +157,6 @@ static int stts751_update_temp(struct stts751_priv *priv)
 	s32 integer1, integer2, frac;
 	int ret = 0;
 
-	mutex_lock(&priv->access_lock);
-
 	/*
 	 * There is a trick here, like in the lm90 driver. We have to read two
 	 * registers to get the sensor temperature, but we have to beware a
@@ -206,7 +204,6 @@ static int stts751_update_temp(struct stts751_priv *priv)
 	}
 
 exit:
-	mutex_unlock(&priv->access_lock);
 	if (ret)
 		return ret;
 
@@ -283,7 +280,7 @@ static int stts751_read_reg8(struct stts751_priv *priv, int *temp, u8 reg)
  * caching to workaround the fact that the status register gets cleared when
  * reading it.
  */
-static int _stts751_update_alert(struct stts751_priv *priv)
+static int stts751_update_alert(struct stts751_priv *priv)
 {
 	int ret;
 	bool conv_done;
@@ -330,19 +327,6 @@ static int _stts751_update_alert(struct stts751_priv *priv)
 	return 0;
 }
 
-/* Update alert status if the cache is old enough */
-static int stts751_update_alert(struct stts751_priv *priv)
-{
-	int cache_time =
-		DIV_ROUND_UP(stts751_intervals[priv->interval] * HZ, 1000);
-
-	if (time_after(jiffies,	priv->last_alert_update + cache_time) ||
-		 !priv->alert_valid)
-		return _stts751_update_alert(priv);
-
-	return 0;
-}
-
 static void stts751_alert(struct i2c_client *client,
 			enum i2c_alert_protocol type, unsigned int data)
 {
@@ -355,7 +339,7 @@ static void stts751_alert(struct i2c_client *client,
 	dev_dbg(&client->dev, "alert!");
 
 	mutex_lock(&priv->access_lock);
-	ret = _stts751_update_alert(priv);
+	ret = stts751_update_alert(priv);
 	if (ret < 0) {
 		/* default to worst case */
 		priv->max_alert = true;
@@ -383,15 +367,37 @@ static void stts751_alert(struct i2c_client *client,
 	mutex_unlock(&priv->access_lock);
 }
 
+static int stts751_update(struct stts751_priv *priv)
+{
+	int ret = 0;
+	int cache_time = stts751_intervals[priv->interval] / 1000;
+
+	mutex_lock(&priv->access_lock);
+	if (time_after(jiffies,	priv->last_update + cache_time) ||
+		!priv->data_valid) {
+		priv->data_valid = true;
+		priv->last_update = jiffies;
+
+		ret = stts751_update_temp(priv);
+		if (ret)
+			goto exit;
+
+		ret = stts751_update_alert(priv);
+	}
+exit:
+	mutex_unlock(&priv->access_lock);
+
+	return ret;
+}
+
 static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	mutex_lock(&priv->access_lock);
-	ret = stts751_update_alert(priv);
-	mutex_unlock(&priv->access_lock);
+
+	ret = stts751_update(priv);
 	if (ret < 0)
 		return ret;
 
@@ -404,9 +410,7 @@ static ssize_t show_min_alarm(struct device *dev, struct device_attribute *attr,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	mutex_lock(&priv->access_lock);
-	ret = stts751_update_alert(priv);
-	mutex_unlock(&priv->access_lock);
+	ret = stts751_update(priv);
 	if (ret < 0)
 		return ret;
 
@@ -419,21 +423,9 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	/*
-	 * Adjust the cache time wrt the sample rate. We do 4X in order to get
-	 * a new measure in no more than 1/4 of the sample time (that seemed
-	 * reasonable to me).
-	 */
-	int cache_time = stts751_intervals[priv->interval] / 4 * HZ / 1000;
-
-	if (time_after(jiffies,	priv->last_update + cache_time) ||
-		!priv->data_valid) {
-		ret = stts751_update_temp(priv);
-		if (ret)
-			return ret;
-		priv->last_update = jiffies;
-		priv->data_valid = true;
-	}
+	ret = stts751_update(priv);
+	if (ret < 0)
+		return ret;
 
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->temp);
 }
@@ -516,9 +508,7 @@ static ssize_t show_therm_trip(struct device *dev,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	mutex_lock(&priv->access_lock);
-	ret = stts751_update_alert(priv);
-	mutex_unlock(&priv->access_lock);
+	ret = stts751_update(priv);
 	if (ret < 0)
 		return ret;
 
