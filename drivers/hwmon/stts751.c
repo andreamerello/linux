@@ -297,8 +297,8 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	if (ret < 0)
 		return ret;
 
-	conv_done = ret & (STTS751_STATUS_TRIPH |
-			STTS751_STATUS_TRIPL | STTS751_STATUS_TRIPT);
+	dev_dbg(priv->dev, "status reg %x\n", ret);
+	conv_done = ret & (STTS751_STATUS_TRIPH | STTS751_STATUS_TRIPL);
 	/*
 	 * Reset the cache if the cache time expired, or if we are sure
 	 * we have valid data from a device conversion, or if we know
@@ -315,14 +315,17 @@ static int stts751_update_alert(struct stts751_priv *priv)
 		conv_done || !priv->alert_valid) {
 		priv->max_alert = false;
 		priv->min_alert = false;
-		priv->therm_trip = false;
 		priv->alert_valid = true;
 		priv->last_alert_update = jiffies;
+		dev_dbg(priv->dev, "invalidating alert cache\n");
 	}
 
 	priv->max_alert |= !!(ret & STTS751_STATUS_TRIPH);
 	priv->min_alert |= !!(ret & STTS751_STATUS_TRIPL);
-	priv->therm_trip |= !!(ret & STTS751_STATUS_TRIPT);
+	priv->therm_trip = !!(ret & STTS751_STATUS_TRIPT);
+
+	dev_dbg(priv->dev, "max_alert: %d, min_alert: %d, therm_trip: %d\n",
+		priv->max_alert, priv->min_alert, priv->therm_trip);
 
 	return 0;
 }
@@ -395,7 +398,6 @@ static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
 {
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
-
 
 	ret = stts751_update(priv);
 	if (ret < 0)
