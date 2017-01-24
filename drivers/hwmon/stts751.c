@@ -277,18 +277,45 @@ static int stts751_read_reg8(struct stts751_priv *priv, int *temp, u8 reg)
 	return 0;
 }
 
-static int stts751_update_alert(struct stts751_priv *priv)
+/*
+ * Update alert flags without waiting for cache to expire. We detects alerts
+ * immediately for the sake of the alert handler; we still need to deal with
+ * caching to workaround the fact that the status register gets cleared when
+ * reading it.
+ */
+static int _stts751_update_alert(struct stts751_priv *priv)
 {
 	int ret;
-	const int cache_time =
+	bool conv_done;
+	int cache_time =
 		DIV_ROUND_UP(stts751_intervals[priv->interval] * HZ, 1000);
+
+	/*
+	 * Add another 10% because if we run faster than the HW conversion
+	 * rate we will end up in reporting incorrectly alarms.
+	 */
+	cache_time += cache_time / 10;
 
 	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_STATUS);
 	if (ret < 0)
 		return ret;
 
+	conv_done = ret & (STTS751_STATUS_TRIPH |
+			STTS751_STATUS_TRIPL | STTS751_STATUS_TRIPT);
+	/*
+	 * Reset the cache if the cache time expired, or if we are sure
+	 * we have valid data from a device conversion, or if we know
+	 * our cache has been never written.
+	 *
+	 * Note that when the cache has been never written the point is
+	 * to correctly initialize the timestamp, rather than clearing
+	 * the cache values.
+	 *
+	 * Note that updating the cache timestamp when we get an alarm flag
+	 * is required, otherwise we could incorrectly report alarms to be zero.
+	 */
 	if (time_after(jiffies,	priv->last_alert_update + cache_time) ||
-		!priv->alert_valid) {
+		conv_done || !priv->alert_valid) {
 		priv->max_alert = false;
 		priv->min_alert = false;
 		priv->therm_trip = false;
@@ -299,6 +326,20 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	priv->max_alert |= !!(ret & STTS751_STATUS_TRIPH);
 	priv->min_alert |= !!(ret & STTS751_STATUS_TRIPL);
 	priv->therm_trip |= !!(ret & STTS751_STATUS_TRIPT);
+
+	return 0;
+}
+
+/* Update alert status if the cache is old enough */
+static int stts751_update_alert(struct stts751_priv *priv)
+{
+	int cache_time =
+		DIV_ROUND_UP(stts751_intervals[priv->interval] * HZ, 1000);
+
+	if (time_after(jiffies,	priv->last_alert_update + cache_time) ||
+		 !priv->alert_valid)
+		return _stts751_update_alert(priv);
+
 	return 0;
 }
 
@@ -314,7 +355,7 @@ static void stts751_alert(struct i2c_client *client,
 	dev_dbg(&client->dev, "alert!");
 
 	mutex_lock(&priv->access_lock);
-	ret = stts751_update_alert(priv);
+	ret = _stts751_update_alert(priv);
 	if (ret < 0) {
 		/* default to worst case */
 		priv->max_alert = true;
