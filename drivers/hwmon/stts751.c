@@ -404,6 +404,17 @@ static ssize_t show_therm(struct device *dev, struct device_attribute *attr,
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->therm);
 }
 
+static int do_set_hyst(struct stts751_priv *priv, int temp)
+{
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, -64000, priv->therm);
+	priv->hyst = temp;
+	dev_dbg(priv->dev, "setting hyst %d", temp);
+	temp = priv->therm - temp;
+
+	return stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
+}
+
 static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 		       const char *buf, size_t count)
 {
@@ -420,8 +431,16 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 		return ret;
 
 	dev_dbg(dev, "setting therm %ld", temp);
-
 	priv->therm = temp;
+
+	/*
+	 * hysteresis reg is relative to therm, so we need to update
+	 * it as well.
+	 */
+	ret = do_set_hyst(priv, priv->hyst);
+	if (ret)
+		return ret;
+
 	return count;
 }
 
@@ -430,7 +449,7 @@ static ssize_t show_hyst(struct device *dev, struct device_attribute *attr,
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
-	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->therm - priv->hyst);
+	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->hyst);
 }
 
 static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
@@ -443,16 +462,9 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
-	/* HW works in range -64C to +127.937C */
-	temp = clamp_val(temp, -64000, priv->therm);
-	temp = priv->therm - temp;
-	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
+	ret = do_set_hyst(priv, temp);
 	if (ret)
 		return ret;
-
-	dev_dbg(dev, "setting hyst %ld", temp);
-
-	priv->hyst = temp;
 	return count;
 }
 
@@ -637,6 +649,7 @@ static int stts751_detect(struct i2c_client *new_client,
 static int stts751_read_chip_config(struct stts751_priv *priv)
 {
 	int ret;
+	int tmp;
 
 	ret = i2c_smbus_read_byte_data(priv->client, STTS751_REG_CONF);
 	if (ret < 0)
@@ -663,9 +676,10 @@ static int stts751_read_chip_config(struct stts751_priv *priv)
 	if (ret)
 		return ret;
 
-	ret = stts751_read_reg8(priv, &priv->hyst, STTS751_REG_HYST);
+	ret = stts751_read_reg8(priv, &tmp, STTS751_REG_HYST);
 	if (ret)
 		return ret;
+	priv->hyst = priv->therm - tmp;
 
 	return ret;
 }
