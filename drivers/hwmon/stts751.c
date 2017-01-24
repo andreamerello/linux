@@ -225,7 +225,8 @@ static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
 	mutex_lock(&priv->access_lock);
 	ret = i2c_smbus_write_byte_data(priv->client, hreg, hwval >> 8);
 	if (!ret)
-		ret = i2c_smbus_write_byte_data(priv->client, lreg, hwval & 0xff);
+		ret = i2c_smbus_write_byte_data(priv->client, lreg,
+						hwval & 0xff);
 	mutex_unlock(&priv->access_lock);
 
 	return ret;
