@@ -341,7 +341,7 @@ static void stts751_alert(struct i2c_client *client,
 	mutex_unlock(&priv->access_lock);
 }
 
-static ssize_t show_max_alert(struct device *dev, struct device_attribute *attr,
+static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
 	int ret;
@@ -356,7 +356,7 @@ static ssize_t show_max_alert(struct device *dev, struct device_attribute *attr,
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->max_alert);
 }
 
-static ssize_t show_min_alert(struct device *dev, struct device_attribute *attr,
+static ssize_t show_min_alarm(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
 	int ret;
@@ -671,32 +671,27 @@ static int stts751_read_chip_config(struct stts751_priv *priv)
 }
 
 static SENSOR_DEVICE_ATTR(temp1_input, S_IRUGO, show_input, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_min, S_IWUSR | S_IRUGO,
-			show_min, set_min, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_max, S_IWUSR | S_IRUGO,
-			show_max, set_max, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_min_alert, S_IRUGO,
-			show_min_alert, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_event_max_alert, S_IRUGO,
-			show_max_alert, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_therm, S_IWUSR | S_IRUGO, show_therm,
+static SENSOR_DEVICE_ATTR(temp1_min, S_IWUSR | S_IRUGO, show_min, set_min, 0);
+static SENSOR_DEVICE_ATTR(temp1_max, S_IWUSR | S_IRUGO, show_max, set_max, 0);
+static SENSOR_DEVICE_ATTR(temp1_min_alarm, S_IRUGO, show_min_alarm, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_max_alarm, S_IRUGO, show_max_alarm, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_crit, S_IWUSR | S_IRUGO, show_therm,
 			set_therm, 0);
-static SENSOR_DEVICE_ATTR(temp1_therm_hyst, S_IWUSR | S_IRUGO, show_hyst,
+static SENSOR_DEVICE_ATTR(temp1_crit_hyst, S_IWUSR | S_IRUGO, show_hyst,
 			set_hyst, 0);
-static SENSOR_DEVICE_ATTR(temp1_therm_trip, S_IRUGO,
-			show_therm_trip, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_crit_alarm, S_IRUGO, show_therm_trip, NULL, 0);
 static SENSOR_DEVICE_ATTR(update_interval, S_IWUSR | S_IRUGO,
 			show_interval, set_interval, 0);
 
 static struct attribute *stts751_attrs[] = {
 	&sensor_dev_attr_temp1_input.dev_attr.attr,
-	&sensor_dev_attr_temp1_event_min.dev_attr.attr,
-	&sensor_dev_attr_temp1_event_max.dev_attr.attr,
-	&sensor_dev_attr_temp1_event_min_alert.dev_attr.attr,
-	&sensor_dev_attr_temp1_event_max_alert.dev_attr.attr,
-	&sensor_dev_attr_temp1_therm.dev_attr.attr,
-	&sensor_dev_attr_temp1_therm_hyst.dev_attr.attr,
-	&sensor_dev_attr_temp1_therm_trip.dev_attr.attr,
+	&sensor_dev_attr_temp1_min.dev_attr.attr,
+	&sensor_dev_attr_temp1_max.dev_attr.attr,
+	&sensor_dev_attr_temp1_min_alarm.dev_attr.attr,
+	&sensor_dev_attr_temp1_max_alarm.dev_attr.attr,
+	&sensor_dev_attr_temp1_crit.dev_attr.attr,
+	&sensor_dev_attr_temp1_crit_hyst.dev_attr.attr,
+	&sensor_dev_attr_temp1_crit_alarm.dev_attr.attr,
 	&sensor_dev_attr_update_interval.dev_attr.attr,
 	NULL
 };
