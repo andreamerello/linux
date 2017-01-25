@@ -360,14 +360,15 @@ static int stts751_update(struct stts751_priv *priv)
 	mutex_lock(&priv->access_lock);
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
 		!priv->data_valid) {
-		priv->data_valid = true;
-		priv->last_update = jiffies;
-
 		ret = stts751_update_temp(priv);
 		if (ret)
 			goto exit;
 
 		ret = stts751_update_alert(priv);
+		if (ret)
+			goto exit;
+		priv->data_valid = true;
+		priv->last_update = jiffies;
 	}
 exit:
 	mutex_unlock(&priv->access_lock);
