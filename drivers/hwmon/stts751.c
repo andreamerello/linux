@@ -186,7 +186,8 @@ static int stts751_update_temp(struct stts751_priv *priv)
 						STTS751_REG_TEMP_L);
 		if (frac < 0) {
 			dev_dbg(&priv->client->dev,
-				"I2C 2nd read failed (temp L). ret: %x\n", frac);
+				"I2C 2nd read failed (temp L). ret: %x\n",
+				frac);
 			return frac;
 		}
 	}
@@ -341,9 +342,9 @@ static void stts751_alert(struct i2c_client *client,
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_min_alarm");
 	}
 
-	if (priv->min_alert || priv->max_alert) {
+	if (priv->min_alert || priv->max_alert)
 		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
-	}
+
 	mutex_unlock(&priv->access_lock);
 }
 
