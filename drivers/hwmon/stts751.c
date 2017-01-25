@@ -260,8 +260,8 @@ static int stts751_read_reg8(struct stts751_priv *priv, int *temp, u8 reg)
 /*
  * Update alert flags without waiting for cache to expire. We detects alerts
  * immediately for the sake of the alert handler; we still need to deal with
- * caching to workaround the fact that the status register gets cleared when
- * reading it.
+ * caching to workaround the fact that alarm flags int the status register,
+ * despite what the datasheet claims, gets always cleared on read.
  */
 static int stts751_update_alert(struct stts751_priv *priv)
 {
