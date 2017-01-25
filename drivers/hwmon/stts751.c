@@ -113,14 +113,7 @@ static int stts751_to_deg(s32 hw_val)
 
 static s32 stts751_to_hw(int val)
 {
-	s32 hw_val;
-
-	if (val < 0)
-		hw_val = (val - 62) / 125 * 32;
-	else
-		hw_val = (val + 62) / 125 * 32;
-
-	return hw_val;
+	return DIV_ROUND_CLOSEST(val, 125) * 32;
 }
 
 static int stts751_adjust_resolution(struct stts751_priv *priv)
