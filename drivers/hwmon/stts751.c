@@ -660,7 +660,7 @@ static int stts751_detect(struct i2c_client *new_client,
 	default:
 		return -ENODEV;
 	}
-	dev_dbg(&new_client->dev, "Chip %s detected!", name);
+	dev_dbg(&new_client->dev, "Chip %s detected", name);
 
 	rev_id = i2c_smbus_read_byte_data(new_client, STTS751_REG_REV_ID);
 	if (rev_id < 0)
