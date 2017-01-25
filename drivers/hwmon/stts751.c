@@ -210,28 +210,20 @@ static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
 
 	hwval = stts751_to_hw(temp);
 
-	mutex_lock(&priv->access_lock);
 	ret = i2c_smbus_write_byte_data(priv->client, hreg, hwval >> 8);
-	if (!ret)
-		ret = i2c_smbus_write_byte_data(priv->client, lreg,
-						hwval & 0xff);
-	mutex_unlock(&priv->access_lock);
+	if (ret)
+		return ret;
 
-	return ret;
+	return i2c_smbus_write_byte_data(priv->client, lreg,
+						hwval & 0xff);
 }
 
 static int stts751_set_temp_reg8(struct stts751_priv *priv, int temp, u8 reg)
 {
 	s32 hwval;
-	int ret;
 
 	hwval = stts751_to_hw(temp);
-
-	mutex_lock(&priv->access_lock);
-	ret = i2c_smbus_write_byte_data(priv->client, reg, hwval >> 8);
-	mutex_unlock(&priv->access_lock);
-
-	return ret;
+	return i2c_smbus_write_byte_data(priv->client, reg, hwval >> 8);
 }
 
 static int stts751_read_reg16(struct stts751_priv *priv, int *temp,
@@ -438,7 +430,6 @@ static int do_set_hyst(struct stts751_priv *priv, int temp)
 	priv->hyst = temp;
 	dev_dbg(priv->dev, "setting hyst %d", temp);
 	temp = priv->therm - temp;
-
 	return stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
 }
 
@@ -451,11 +442,13 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
+
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, -64000, 127937);
+	mutex_lock(&priv->access_lock);
 	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_TLIM);
 	if (ret)
-		return ret;
+		goto exit;
 
 	dev_dbg(dev, "setting therm %ld", temp);
 	priv->therm = temp;
@@ -465,6 +458,8 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 	 * it as well.
 	 */
 	ret = do_set_hyst(priv, priv->hyst);
+exit:
+	mutex_unlock(&priv->access_lock);
 	if (ret)
 		return ret;
 
@@ -489,7 +484,10 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
+
+	mutex_lock(&priv->access_lock);
 	ret = do_set_hyst(priv, temp);
+	mutex_unlock(&priv->access_lock);
 	if (ret)
 		return ret;
 	return count;
@@ -525,16 +523,21 @@ static ssize_t set_max(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
+
+	mutex_lock(&priv->access_lock);
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, priv->event_min, 127937);
 	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
-		return ret;
+		goto exit;
 
 	dev_dbg(dev, "setting event max %ld", temp);
 	priv->event_max = temp;
-	return count;
+	ret = count;
+exit:
+	mutex_unlock(&priv->access_lock);
+	return ret;
 }
 
 static ssize_t show_min(struct device *dev, struct device_attribute *attr,
@@ -554,17 +557,21 @@ static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 
 	if (kstrtol(buf, 10, &temp) < 0)
 		return -EINVAL;
+
+	mutex_lock(&priv->access_lock);
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, -64000, priv->event_max);
 	ret = stts751_set_temp_reg16(priv, temp,
 				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
-		return ret;
+		goto exit;
 
 	dev_dbg(dev, "setting event min %ld", temp);
-
 	priv->event_min = temp;
-	return count;
+	ret = count;
+exit:
+	mutex_unlock(&priv->access_lock);
+	return ret;
 }
 
 static ssize_t show_interval(struct device *dev, struct device_attribute *attr,
