@@ -267,8 +267,7 @@ static int stts751_update_alert(struct stts751_priv *priv)
 {
 	int ret;
 	bool conv_done;
-	int cache_time =
-		DIV_ROUND_UP(stts751_intervals[priv->interval] * HZ, 1000);
+	int cache_time = msecs_to_jiffies(stts751_intervals[priv->interval]);
 
 	/*
 	 * Add another 10% because if we run faster than the HW conversion
@@ -356,7 +355,7 @@ static void stts751_alert(struct i2c_client *client,
 static int stts751_update(struct stts751_priv *priv)
 {
 	int ret = 0;
-	int cache_time = stts751_intervals[priv->interval] / 1000;
+	int cache_time = msecs_to_jiffies(stts751_intervals[priv->interval]);
 
 	mutex_lock(&priv->access_lock);
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
