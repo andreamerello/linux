@@ -155,7 +155,6 @@ static int stts751_adjust_resolution(struct stts751_priv *priv)
 static int stts751_update_temp(struct stts751_priv *priv)
 {
 	s32 integer1, integer2, frac;
-	int ret = 0;
 
 	/*
 	 * There is a trick here, like in the lm90 driver. We have to read two
@@ -171,25 +170,22 @@ static int stts751_update_temp(struct stts751_priv *priv)
 	integer1 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
 	if (integer1 < 0) {
 		dev_dbg(&priv->client->dev,
-			"I2C read failed (temp H). ret: %x\n", ret);
-		ret = integer1;
-		goto exit;
+			"I2C read failed (temp H). ret: %x\n", integer1);
+		return integer1;
 	}
 
 	frac = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_L);
 	if (frac < 0) {
 		dev_dbg(&priv->client->dev,
-			"I2C read failed (temp L). ret: %x\n", ret);
-		ret = frac;
-		goto exit;
+			"I2C read failed (temp L). ret: %x\n", frac);
+		return frac;
 	}
 
 	integer2 = i2c_smbus_read_byte_data(priv->client, STTS751_REG_TEMP_H);
 	if (integer2 < 0) {
 		dev_dbg(&priv->client->dev,
-			"I2C 2nd read failed (temp H). ret: %x\n", ret);
-		ret = integer2;
-		goto exit;
+			"I2C 2nd read failed (temp H). ret: %x\n", integer2);
+		return integer2;
 	}
 
 	if (integer1 != integer2) {
@@ -197,18 +193,13 @@ static int stts751_update_temp(struct stts751_priv *priv)
 						STTS751_REG_TEMP_L);
 		if (frac < 0) {
 			dev_dbg(&priv->client->dev,
-				"I2C 2nd read failed (temp L). ret: %x\n", ret);
-			ret = frac;
-			goto exit;
+				"I2C 2nd read failed (temp L). ret: %x\n", frac);
+			return frac;
 		}
 	}
 
-exit:
-	if (ret)
-		return ret;
-
 	priv->temp = stts751_to_deg((integer1 << 8) | frac);
-	return ret;
+	return 0;
 }
 
 static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
