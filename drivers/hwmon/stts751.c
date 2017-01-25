@@ -356,7 +356,7 @@ static void stts751_alert(struct i2c_client *client,
 		dev_notice(&client->dev, "got alert for HIGH temperature");
 
 		/* unblock alert poll */
-		sysfs_notify(&priv->dev->kobj, NULL, "temp1_event_max_alert");
+		sysfs_notify(&priv->dev->kobj, NULL, "temp1_max_alarm");
 		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
 	}
 
@@ -364,7 +364,7 @@ static void stts751_alert(struct i2c_client *client,
 		dev_notice(&client->dev, "got alert for LOW temperature");
 
 		/* unblock alert poll */
-		sysfs_notify(&priv->dev->kobj, NULL, "temp1_event_min_alert");
+		sysfs_notify(&priv->dev->kobj, NULL, "temp1_min_alarm");
 		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
 	}
 	mutex_unlock(&priv->access_lock);
