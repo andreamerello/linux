@@ -423,16 +423,6 @@ static ssize_t show_therm(struct device *dev, struct device_attribute *attr,
 	return snprintf(buf, PAGE_SIZE - 1, "%d\n", priv->therm);
 }
 
-static int do_set_hyst(struct stts751_priv *priv, int temp)
-{
-	/* HW works in range -64C to +127.937C */
-	temp = clamp_val(temp, -64000, priv->therm);
-	priv->hyst = temp;
-	dev_dbg(priv->dev, "setting hyst %d", temp);
-	temp = priv->therm - temp;
-	return stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
-}
-
 static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 		       const char *buf, size_t count)
 {
@@ -451,13 +441,14 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 		goto exit;
 
 	dev_dbg(dev, "setting therm %ld", temp);
-	priv->therm = temp;
 
 	/*
-	 * hysteresis reg is relative to therm, so we need to update
-	 * it as well.
+	 * hysteresis reg is relative to therm, so the HW does not need to be
+	 * adjusted, we need to update our local copy only.
 	 */
-	ret = do_set_hyst(priv, priv->hyst);
+	priv->hyst = temp - (priv->therm - priv->hyst);
+	priv->therm = temp;
+
 exit:
 	mutex_unlock(&priv->access_lock);
 	if (ret)
@@ -486,10 +477,16 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 
 	mutex_lock(&priv->access_lock);
-	ret = do_set_hyst(priv, temp);
+	/* HW works in range -64C to +127.937C */
+	temp = clamp_val(temp, -64000, priv->therm);
+	priv->hyst = temp;
+	dev_dbg(priv->dev, "setting hyst %ld", temp);
+	temp = priv->therm - temp;
+	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
 	mutex_unlock(&priv->access_lock);
 	if (ret)
 		return ret;
+
 	return count;
 }
 
