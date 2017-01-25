@@ -339,7 +339,6 @@ static void stts751_alert(struct i2c_client *client,
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_max_alarm");
-		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
 	}
 
 	if (priv->min_alert) {
@@ -347,6 +346,9 @@ static void stts751_alert(struct i2c_client *client,
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_min_alarm");
+	}
+
+	if (priv->min_alert || priv->max_alert) {
 		kobject_uevent(&priv->dev->kobj, KOBJ_CHANGE);
 	}
 	mutex_unlock(&priv->access_lock);
