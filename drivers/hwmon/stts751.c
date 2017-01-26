@@ -140,6 +140,8 @@ static int stts751_adjust_resolution(struct stts751_priv *priv)
 
 	priv->config &= ~STTS751_CONF_RES_MASK;
 	priv->config |= res << STTS751_CONF_RES_SHIFT;
+	dev_dbg(priv->dev, "setting res %d. config %x", res, priv->config);
+	priv->res = res;
 
 	return i2c_smbus_write_byte_data(priv->client,
 				STTS751_REG_CONF, priv->config);
@@ -607,6 +609,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 
 	/* speed up: lower the resolution, then modify convrate */
 	if (priv->interval < idx) {
+		dev_dbg(priv->dev, "lower resolution, then modify convrate");
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
@@ -618,6 +621,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 		goto exit;
 	/* slow down: modify convrate, then raise resolution */
 	if (priv->interval != idx) {
+		dev_dbg(priv->dev, "modify convrate, then raise resolution");
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
