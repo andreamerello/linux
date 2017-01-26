@@ -106,7 +106,7 @@ struct stts751_priv {
  * These functions converts temperature from HW format to integer format and
  * vice-vers. They are (mostly) taken from lm90 driver. Unit is in mC.
  */
-static int stts751_to_deg(s32 hw_val)
+static int stts751_to_deg(s16 hw_val)
 {
 	return hw_val * 125 / 32;
 }
