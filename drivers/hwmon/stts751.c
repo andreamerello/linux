@@ -593,10 +593,9 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 	dev_dbg(dev, "setting interval. req:%lu, idx: %d, val: %d", val, idx,
 		stts751_intervals[idx]);
 
-	if (priv->interval == idx)
-		return count;
-
 	mutex_lock(&priv->access_lock);
+	if (priv->interval == idx)
+		goto exit;
 
 	/*
 	 * In early development stages I've become suspicious about the chip
