@@ -626,10 +626,11 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 		if (ret)
 			goto exit;
 	}
+	ret = count;
 exit:
 	mutex_unlock(&priv->access_lock);
 
-	return count;
+	return ret;
 }
 
 static int stts751_detect(struct i2c_client *new_client,
