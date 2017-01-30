@@ -210,8 +210,7 @@ static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
 	if (ret)
 		return ret;
 
-	return i2c_smbus_write_byte_data(priv->client, lreg,
-						hwval & 0xff);
+	return i2c_smbus_write_byte_data(priv->client, lreg, hwval & 0xff);
 }
 
 static int stts751_set_temp_reg8(struct stts751_priv *priv, int temp, u8 reg)
