@@ -199,7 +199,7 @@ static int stts751_update_temp(struct stts751_priv *priv)
 }
 
 static int stts751_set_temp_reg16(struct stts751_priv *priv, int temp,
-				u8 hreg, u8 lreg)
+				  u8 hreg, u8 lreg)
 {
 	s32 hwval;
 	int ret;
@@ -223,7 +223,7 @@ static int stts751_set_temp_reg8(struct stts751_priv *priv, int temp, u8 reg)
 }
 
 static int stts751_read_reg16(struct stts751_priv *priv, int *temp,
-				u8 hreg, u8 lreg)
+			      u8 hreg, u8 lreg)
 {
 	int integer, frac;
 
@@ -290,7 +290,7 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	 * is required, otherwise we could incorrectly report alarms to be zero.
 	 */
 	if (time_after(jiffies,	priv->last_alert_update + cache_time) ||
-		conv_done || !priv->alert_valid) {
+	    conv_done || !priv->alert_valid) {
 		priv->max_alert = false;
 		priv->min_alert = false;
 		priv->alert_valid = true;
@@ -309,7 +309,7 @@ static int stts751_update_alert(struct stts751_priv *priv)
 }
 
 static void stts751_alert(struct i2c_client *client,
-			enum i2c_alert_protocol type, unsigned int data)
+			  enum i2c_alert_protocol type, unsigned int data)
 {
 	int ret;
 	struct stts751_priv *priv = i2c_get_clientdata(client);
@@ -327,7 +327,7 @@ static void stts751_alert(struct i2c_client *client,
 		priv->min_alert = true;
 
 		dev_warn(&priv->client->dev,
-			"Alert received, but can't communicate to the device. Something bad happening? Triggering all alarms!");
+			 "Alert received, but can't communicate to the device. Something bad happening? Triggering all alarms!");
 	}
 
 	if (priv->max_alert) {
@@ -357,7 +357,7 @@ static int stts751_update(struct stts751_priv *priv)
 
 	mutex_lock(&priv->access_lock);
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
-		!priv->data_valid) {
+	    !priv->data_valid) {
 		ret = stts751_update_temp(priv);
 		if (ret)
 			goto exit;
@@ -375,7 +375,7 @@ exit:
 }
 
 static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
-			  char *buf)
+			      char *buf)
 {
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
@@ -388,7 +388,7 @@ static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t show_min_alarm(struct device *dev, struct device_attribute *attr,
-			  char *buf)
+			      char *buf)
 {
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
@@ -414,7 +414,7 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t show_therm(struct device *dev, struct device_attribute *attr,
-			char *buf)
+			  char *buf)
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
@@ -422,7 +422,7 @@ static ssize_t show_therm(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
-		       const char *buf, size_t count)
+			 const char *buf, size_t count)
 {
 	int ret;
 	long temp;
@@ -456,7 +456,7 @@ exit:
 }
 
 static ssize_t show_hyst(struct device *dev, struct device_attribute *attr,
-			char *buf)
+			 char *buf)
 {
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
@@ -464,7 +464,7 @@ static ssize_t show_hyst(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
-		       const char *buf, size_t count)
+			const char *buf, size_t count)
 {
 	int ret;
 	long temp;
@@ -489,7 +489,7 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 }
 
 static ssize_t show_therm_trip(struct device *dev,
-				struct device_attribute *attr, char *buf)
+			       struct device_attribute *attr, char *buf)
 {
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
@@ -523,7 +523,7 @@ static ssize_t set_max(struct device *dev, struct device_attribute *attr,
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, priv->event_min, 127937);
 	ret = stts751_set_temp_reg16(priv, temp,
-				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
+				     STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
 		goto exit;
 
@@ -557,7 +557,7 @@ static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, -64000, priv->event_max);
 	ret = stts751_set_temp_reg16(priv, temp,
-				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
+				     STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
 		goto exit;
 
@@ -590,7 +590,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 
 	idx = find_closest_descending(val, stts751_intervals,
-				ARRAY_SIZE(stts751_intervals));
+				      ARRAY_SIZE(stts751_intervals));
 
 	dev_dbg(dev, "setting interval. req:%lu, idx: %d, val: %d", val, idx,
 		stts751_intervals[idx]);
@@ -666,8 +666,8 @@ static int stts751_detect(struct i2c_client *new_client,
 		return -ENODEV;
 	if (rev_id != 0x1) {
 		dev_notice(&new_client->dev,
-			"Chip revision 0x%x is untested\nPlease report whether it works to andrea.merello@gmail.com",
-			rev_id);
+			   "Chip revision 0x%x is untested\nPlease report whether it works to andrea.merello@gmail.com",
+			   rev_id);
 	}
 
 	strlcpy(info->type, stts751_id[0].name, I2C_NAME_SIZE);
@@ -691,12 +691,12 @@ static int stts751_read_chip_config(struct stts751_priv *priv)
 	priv->interval = ret;
 
 	ret = stts751_read_reg16(priv, &priv->event_max,
-				STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
+				 STTS751_REG_HLIM_H, STTS751_REG_HLIM_L);
 	if (ret)
 		return ret;
 
 	ret = stts751_read_reg16(priv, &priv->event_min,
-				STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
+				 STTS751_REG_LLIM_H, STTS751_REG_LLIM_L);
 	if (ret)
 		return ret;
 
@@ -755,9 +755,9 @@ static int stts751_probe(struct i2c_client *client,
 	mutex_init(&priv->access_lock);
 
 	if (device_property_present(&client->dev,
-					"smbus-timeout-disable")) {
+				    "smbus-timeout-disable")) {
 		smbus_to = !device_property_read_bool(&client->dev,
-						"smbus-timeout-disable");
+						      "smbus-timeout-disable");
 
 		ret = i2c_smbus_write_byte_data(priv->client,
 						STTS751_REG_SMBUS_TO,
