@@ -712,18 +712,16 @@ static int stts751_read_chip_config(struct stts751_priv *priv)
 	return ret;
 }
 
-static SENSOR_DEVICE_ATTR(temp1_input, S_IRUGO, show_input, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_min, S_IWUSR | S_IRUGO, show_min, set_min, 0);
-static SENSOR_DEVICE_ATTR(temp1_max, S_IWUSR | S_IRUGO, show_max, set_max, 0);
-static SENSOR_DEVICE_ATTR(temp1_min_alarm, S_IRUGO, show_min_alarm, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_max_alarm, S_IRUGO, show_max_alarm, NULL, 0);
-static SENSOR_DEVICE_ATTR(temp1_crit, S_IWUSR | S_IRUGO, show_therm,
-			set_therm, 0);
-static SENSOR_DEVICE_ATTR(temp1_crit_hyst, S_IWUSR | S_IRUGO, show_hyst,
-			set_hyst, 0);
-static SENSOR_DEVICE_ATTR(temp1_crit_alarm, S_IRUGO, show_therm_trip, NULL, 0);
-static SENSOR_DEVICE_ATTR(update_interval, S_IWUSR | S_IRUGO,
-			show_interval, set_interval, 0);
+static SENSOR_DEVICE_ATTR(temp1_input, 0444, show_input, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_min, 0644, show_min, set_min, 0);
+static SENSOR_DEVICE_ATTR(temp1_max, 0644, show_max, set_max, 0);
+static SENSOR_DEVICE_ATTR(temp1_min_alarm, 0444, show_min_alarm, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_max_alarm, 0444, show_max_alarm, NULL, 0);
+static SENSOR_DEVICE_ATTR(temp1_crit, 0644, show_therm,	set_therm, 0);
+static SENSOR_DEVICE_ATTR(temp1_crit_hyst, 0644, show_hyst, set_hyst, 0);
+static SENSOR_DEVICE_ATTR(temp1_crit_alarm, 0444, show_therm_trip, NULL, 0);
+static SENSOR_DEVICE_ATTR(update_interval, 0644,
+			  show_interval, set_interval, 0);
 
 static struct attribute *stts751_attrs[] = {
 	&sensor_dev_attr_temp1_input.dev_attr.attr,
