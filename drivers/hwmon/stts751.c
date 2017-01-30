@@ -643,7 +643,7 @@ static int stts751_detect(struct i2c_client *new_client,
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -ENODEV;
 
-	tmp = i2c_smbus_read_byte_data(new_client, ST_MAN_ID);
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_MAN_ID);
 	if (tmp != ST_MAN_ID)
 		return -ENODEV;
 
