@@ -638,18 +638,36 @@ static int stts751_detect(struct i2c_client *new_client,
 {
 	struct i2c_adapter *adapter = new_client->adapter;
 	const char *name;
-	int mfg_id, prod_id;
+	int tmp;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -ENODEV;
 
-	mfg_id = i2c_smbus_read_byte_data(new_client, ST_MAN_ID);
-	if (mfg_id != ST_MAN_ID)
+	tmp = i2c_smbus_read_byte_data(new_client, ST_MAN_ID);
+	if (tmp != ST_MAN_ID)
 		return -ENODEV;
 
-	prod_id = i2c_smbus_read_byte_data(new_client, STTS751_REG_PROD_ID);
+	/* lower temperaure registers always have bits 0-3 set to zero */
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_TEMP_L);
+	if (tmp & 0xf)
+		return -ENODEV;
 
-	switch (prod_id) {
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_HLIM_L);
+	if (tmp & 0xf)
+		return -ENODEV;
+
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_LLIM_L);
+	if (tmp & 0xf)
+		return -ENODEV;
+
+	/* smbus timeout register always have bits 0-7 set to zero */
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_SMBUS_TO);
+	if (tmp & 0x7f)
+		return -ENODEV;
+
+	tmp = i2c_smbus_read_byte_data(new_client, STTS751_REG_PROD_ID);
+
+	switch (tmp) {
 	case STTS751_0_PROD_ID:
 		name = "STTS751-0";
 		break;
