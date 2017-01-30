@@ -638,7 +638,7 @@ static int stts751_detect(struct i2c_client *new_client,
 {
 	struct i2c_adapter *adapter = new_client->adapter;
 	const char *name;
-	int mfg_id, prod_id, rev_id;
+	int mfg_id, prod_id;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
 		return -ENODEV;
@@ -660,15 +660,6 @@ static int stts751_detect(struct i2c_client *new_client,
 		return -ENODEV;
 	}
 	dev_dbg(&new_client->dev, "Chip %s detected", name);
-
-	rev_id = i2c_smbus_read_byte_data(new_client, STTS751_REG_REV_ID);
-	if (rev_id < 0)
-		return -ENODEV;
-	if (rev_id != 0x1) {
-		dev_notice(&new_client->dev,
-			   "Chip revision 0x%x is untested\nPlease report whether it works to andrea.merello@gmail.com",
-			   rev_id);
-	}
 
 	strlcpy(info->type, stts751_id[0].name, I2C_NAME_SIZE);
 	return 0;
@@ -743,6 +734,7 @@ static int stts751_probe(struct i2c_client *client,
 	struct stts751_priv *priv;
 	int ret;
 	bool smbus_to_dis;
+	int rev_id;
 
 	priv = devm_kzalloc(&client->dev, sizeof(*priv), GFP_KERNEL);
 	if (!priv)
@@ -762,6 +754,14 @@ static int stts751_probe(struct i2c_client *client,
 						smbus_to_dis ? 0 : 0x80);
 		if (ret)
 			return ret;
+	}
+
+	rev_id = i2c_smbus_read_byte_data(priv->client, STTS751_REG_REV_ID);
+	if (rev_id < 0)
+		return -ENODEV;
+	if (rev_id != 0x1) {
+		dev_dbg(&priv->client->dev, "Chip revision 0x%x is untested\n",
+			rev_id);
 	}
 
 	ret = stts751_read_chip_config(priv);
