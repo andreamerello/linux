@@ -326,7 +326,7 @@ static void stts751_alert(struct i2c_client *client,
 		priv->min_alert = true;
 
 		dev_warn(&priv->client->dev,
-			 "Alert received, but can't communicate to the device. Something bad happening? Triggering all alarms!");
+			 "Alert received, but can't communicate to the device. Triggering all alarms!");
 	}
 
 	if (priv->max_alert) {
