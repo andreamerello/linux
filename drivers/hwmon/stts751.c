@@ -582,7 +582,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 {
 	unsigned long val;
 	int idx;
-	int ret = 0;
+	int ret = count;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
 	if (kstrtoul(buf, 10, &val) < 0)
