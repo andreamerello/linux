@@ -700,7 +700,7 @@ static int stts751_read_chip_config(struct stts751_priv *priv)
 		return ret;
 	priv->hyst = priv->therm - tmp;
 
-	return ret;
+	return 0;
 }
 
 static SENSOR_DEVICE_ATTR(temp1_input, 0444, show_input, NULL, 0);
