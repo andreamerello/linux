@@ -140,7 +140,8 @@ static int stts751_adjust_resolution(struct stts751_priv *priv)
 
 	priv->config &= ~STTS751_CONF_RES_MASK;
 	priv->config |= res << STTS751_CONF_RES_SHIFT;
-	dev_dbg(priv->dev, "setting res %d. config %x", res, priv->config);
+	dev_dbg(&priv->client->dev, "setting res %d. config %x",
+		res, priv->config);
 	priv->res = res;
 
 	return i2c_smbus_write_byte_data(priv->client,
@@ -274,7 +275,7 @@ static int stts751_update_alert(struct stts751_priv *priv)
 	if (ret < 0)
 		return ret;
 
-	dev_dbg(priv->dev, "status reg %x\n", ret);
+	dev_dbg(&priv->client->dev, "status reg %x\n", ret);
 	conv_done = ret & (STTS751_STATUS_TRIPH | STTS751_STATUS_TRIPL);
 	/*
 	 * Reset the cache if the cache time expired, or if we are sure
@@ -294,14 +295,14 @@ static int stts751_update_alert(struct stts751_priv *priv)
 		priv->min_alert = false;
 		priv->alert_valid = true;
 		priv->last_alert_update = jiffies;
-		dev_dbg(priv->dev, "invalidating alert cache\n");
+		dev_dbg(&priv->client->dev, "invalidating alert cache\n");
 	}
 
 	priv->max_alert |= !!(ret & STTS751_STATUS_TRIPH);
 	priv->min_alert |= !!(ret & STTS751_STATUS_TRIPL);
 	priv->therm_trip = !!(ret & STTS751_STATUS_TRIPT);
 
-	dev_dbg(priv->dev, "max_alert: %d, min_alert: %d, therm_trip: %d\n",
+	dev_dbg(&priv->client->dev, "max_alert: %d, min_alert: %d, therm_trip: %d\n",
 		priv->max_alert, priv->min_alert, priv->therm_trip);
 
 	return 0;
@@ -437,7 +438,7 @@ static ssize_t set_therm(struct device *dev, struct device_attribute *attr,
 	if (ret)
 		goto exit;
 
-	dev_dbg(dev, "setting therm %ld", temp);
+	dev_dbg(&priv->client->dev, "setting therm %ld", temp);
 
 	/*
 	 * hysteresis reg is relative to therm, so the HW does not need to be
@@ -477,7 +478,7 @@ static ssize_t set_hyst(struct device *dev, struct device_attribute *attr,
 	/* HW works in range -64C to +127.937C */
 	temp = clamp_val(temp, -64000, priv->therm);
 	priv->hyst = temp;
-	dev_dbg(priv->dev, "setting hyst %ld", temp);
+	dev_dbg(&priv->client->dev, "setting hyst %ld", temp);
 	temp = priv->therm - temp;
 	ret = stts751_set_temp_reg8(priv, temp, STTS751_REG_HYST);
 	mutex_unlock(&priv->access_lock);
@@ -526,7 +527,7 @@ static ssize_t set_max(struct device *dev, struct device_attribute *attr,
 	if (ret)
 		goto exit;
 
-	dev_dbg(dev, "setting event max %ld", temp);
+	dev_dbg(&priv->client->dev, "setting event max %ld", temp);
 	priv->event_max = temp;
 	ret = count;
 exit:
@@ -560,7 +561,7 @@ static ssize_t set_min(struct device *dev, struct device_attribute *attr,
 	if (ret)
 		goto exit;
 
-	dev_dbg(dev, "setting event min %ld", temp);
+	dev_dbg(&priv->client->dev, "setting event min %ld", temp);
 	priv->event_min = temp;
 	ret = count;
 exit:
@@ -591,8 +592,8 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 	idx = find_closest_descending(val, stts751_intervals,
 				      ARRAY_SIZE(stts751_intervals));
 
-	dev_dbg(dev, "setting interval. req:%lu, idx: %d, val: %d", val, idx,
-		stts751_intervals[idx]);
+	dev_dbg(&priv->client->dev, "setting interval. req:%lu, idx: %d, val: %d",
+		val, idx, stts751_intervals[idx]);
 
 	mutex_lock(&priv->access_lock);
 	if (priv->interval == idx)
@@ -608,7 +609,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 
 	/* speed up: lower the resolution, then modify convrate */
 	if (priv->interval < idx) {
-		dev_dbg(priv->dev, "lower resolution, then modify convrate");
+		dev_dbg(&priv->client->dev, "lower resolution, then modify convrate");
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
@@ -620,7 +621,7 @@ static ssize_t set_interval(struct device *dev, struct device_attribute *attr,
 		goto exit;
 	/* slow down: modify convrate, then raise resolution */
 	if (priv->interval != idx) {
-		dev_dbg(priv->dev, "modify convrate, then raise resolution");
+		dev_dbg(&priv->client->dev, "modify convrate, then raise resolution");
 		priv->interval = idx;
 		ret = stts751_adjust_resolution(priv);
 		if (ret)
