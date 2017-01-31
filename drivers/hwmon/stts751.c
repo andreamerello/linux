@@ -767,18 +767,17 @@ static int stts751_probe(struct i2c_client *client,
 		smbus_nto = device_property_read_bool(&client->dev,
 						      "smbus-timeout-disable");
 
-		ret = i2c_smbus_write_byte_data(priv->client,
-						STTS751_REG_SMBUS_TO,
+		ret = i2c_smbus_write_byte_data(client,	STTS751_REG_SMBUS_TO,
 						smbus_nto ? 0 : 0x80);
 		if (ret)
 			return ret;
 	}
 
-	rev_id = i2c_smbus_read_byte_data(priv->client, STTS751_REG_REV_ID);
+	rev_id = i2c_smbus_read_byte_data(client, STTS751_REG_REV_ID);
 	if (rev_id < 0)
 		return -ENODEV;
 	if (rev_id != 0x1) {
-		dev_dbg(&priv->client->dev, "Chip revision 0x%x is untested\n",
+		dev_dbg(&client->dev, "Chip revision 0x%x is untested\n",
 			rev_id);
 	}
 
@@ -787,8 +786,7 @@ static int stts751_probe(struct i2c_client *client,
 		return ret;
 
 	priv->config &= ~(STTS751_CONF_STOP | STTS751_CONF_EVENT_DIS);
-	ret = i2c_smbus_write_byte_data(priv->client,
-					STTS751_REG_CONF, priv->config);
+	ret = i2c_smbus_write_byte_data(client,	STTS751_REG_CONF, priv->config);
 	if (ret)
 		return ret;
 
