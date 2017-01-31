@@ -326,19 +326,19 @@ static void stts751_alert(struct i2c_client *client,
 		priv->max_alert = true;
 		priv->min_alert = true;
 
-		dev_warn(&priv->client->dev,
+		dev_warn(priv->dev,
 			 "Alert received, but can't communicate to the device. Triggering all alarms!");
 	}
 
 	if (priv->max_alert) {
-		dev_notice(&client->dev, "got alert for HIGH temperature");
+		dev_notice(priv->dev, "got alert for HIGH temperature");
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_max_alarm");
 	}
 
 	if (priv->min_alert) {
-		dev_notice(&client->dev, "got alert for LOW temperature");
+		dev_notice(priv->dev, "got alert for LOW temperature");
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_min_alarm");
