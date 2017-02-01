@@ -100,6 +100,7 @@ struct stts751_priv {
 	u8 config;
 	bool min_alert, max_alert, therm_trip;
 	bool data_valid, alert_valid;
+	bool notify_max, notify_min;
 };
 
 /*
@@ -331,14 +332,18 @@ static void stts751_alert(struct i2c_client *client,
 	}
 
 	if (priv->max_alert) {
-		dev_notice(priv->dev, "got alert for HIGH temperature");
+		if (priv->notify_max)
+			dev_notice(priv->dev, "got alert for HIGH temperature");
+		priv->notify_max = false;
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_max_alarm");
 	}
 
 	if (priv->min_alert) {
-		dev_notice(priv->dev, "got alert for LOW temperature");
+		if (priv->notify_min)
+			dev_notice(priv->dev, "got alert for LOW temperature");
+		priv->notify_min = false;
 
 		/* unblock alert poll */
 		sysfs_notify(&priv->dev->kobj, NULL, "temp1_min_alarm");
@@ -352,26 +357,23 @@ static void stts751_alert(struct i2c_client *client,
 
 static int stts751_update(struct stts751_priv *priv)
 {
-	int ret = 0;
+	int ret;
 	int cache_time = msecs_to_jiffies(stts751_intervals[priv->interval]);
 
-	mutex_lock(&priv->access_lock);
 	if (time_after(jiffies,	priv->last_update + cache_time) ||
 	    !priv->data_valid) {
 		ret = stts751_update_temp(priv);
 		if (ret)
-			goto exit;
+			return ret;
 
 		ret = stts751_update_alert(priv);
 		if (ret)
-			goto exit;
+			return ret;
 		priv->data_valid = true;
 		priv->last_update = jiffies;
 	}
-exit:
-	mutex_unlock(&priv->access_lock);
 
-	return ret;
+	return 0;
 }
 
 static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
@@ -380,7 +382,11 @@ static ssize_t show_max_alarm(struct device *dev, struct device_attribute *attr,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
+	mutex_lock(&priv->access_lock);
 	ret = stts751_update(priv);
+	if (!ret)
+		priv->notify_max = true;
+	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
@@ -393,7 +399,11 @@ static ssize_t show_min_alarm(struct device *dev, struct device_attribute *attr,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
+	mutex_lock(&priv->access_lock);
 	ret = stts751_update(priv);
+	if (!ret)
+		priv->notify_min = true;
+	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
@@ -406,7 +416,9 @@ static ssize_t show_input(struct device *dev, struct device_attribute *attr,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
+	mutex_lock(&priv->access_lock);
 	ret = stts751_update(priv);
+	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
@@ -494,7 +506,9 @@ static ssize_t show_therm_trip(struct device *dev,
 	int ret;
 	struct stts751_priv *priv = dev_get_drvdata(dev);
 
+	mutex_lock(&priv->access_lock);
 	ret = stts751_update(priv);
+	mutex_unlock(&priv->access_lock);
 	if (ret < 0)
 		return ret;
 
@@ -760,6 +774,8 @@ static int stts751_probe(struct i2c_client *client,
 		return -ENOMEM;
 
 	priv->client = client;
+	priv->notify_max = true;
+	priv->notify_min = true;
 	i2c_set_clientdata(client, priv);
 	mutex_init(&priv->access_lock);
 
